@@ -1,15 +1,18 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#define MAX_CHILDREN 10
+
 // Structure for every node
 typedef struct node{
-	char name[1024];
-	char prog[1024];
-	char input[50][1024];
-	char output[1024];
-	int children[10];
+	char name[1024];  // node's name
+	char prog[1024];  // executable
+	char input[MAX_CHILDREN][1024];
+    char candidates[1024];  // Candidates input string from input.txt Ex. "3 A B C"
+	char output[1024];  // Output file name
+	int children[MAX_CHILDREN];  // Child node ids
 	int num_children;
-	int status;
+	int status;  // Whether or not node has run
 	pid_t pid;
 	int id;
 }node_t;
