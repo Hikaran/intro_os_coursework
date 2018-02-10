@@ -15,11 +15,27 @@
 #define MAX_NODES 100
 
 
-//Function signatures
+/** Return if the given line is a comment (starts with a '#') */
+int line_is_comment(char* line) {
+    return line[0] == '#';  // TODO: Trim whitespace
+}
+
+/**
+ * Parse "Line 2" of the input file creating the nodes and initalizing their values
+ * Args:
+ *   'line' - Line to parse
+ *   'nodes' - Pointer to nodes to be allocated
+ *   'candidates' - string of candidates to be passed used in node value initalization
+ * */
+void parseInputCreateNodes(char* line, node_t *nodes, char* candidates) {
+    char** argvp = (char**)malloc(MAX_NODES*1024*sizeof(char));
+    int num_tokens = makeargv(line, " ", &argvp);
+    printf("num_tokens: %d\n", num_tokens);
+}
 
 /**Function : parseInput
  * Arguments: 'filename' - name of the input file
- * 			  'n' - Pointer to Nodes to be allocated by parsing
+ * 			  'nodes' - Pointer to Nodes to be allocated by parsing
  * Output: Number of Total Allocated Nodes
  * About parseInput: parseInput is supposed to
  * 1) Open the Input File [There is a utility function provided in utility handbook]
@@ -35,12 +51,31 @@
  This gets run only once, after all other nodes are done executing
  It uses: ./find_winner <arguments> [Refer utility handbook]
  */
-int parseInput(char *filename, node_t *n) {
+int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
     char* buf = (char*)malloc(1024*sizeof(char));
-    buf = read_line(buf, f);
-    printf("buf: %s", buf);
+    char* candidates = (char*)malloc(1024*sizeof(char));
+    int line_num = 0;
+    while (buf = read_line(buf, f)) {
+        if (line_is_comment(buf)) {  // TODO: Ignore empty lines
+            continue;
+        }
+        line_num++;
+        if (line_num <= 0) {
+            printf("There was an error parsing the input file.");
+            exit(1);
+        } else if (line_num == 1) {
+            strcpy(candidates, buf);
+        } else if (line_num == 2) {
+            parseInputCreateNodes(buf, nodes, candidates);
+        } else {
+        }
+
+        printf("line %d: %s", line_num, buf);
+    }
+    printf("candidates: %s", candidates);
     free(buf);
+    free(candidates);
 }
 
 /**Function : parseInputLine
