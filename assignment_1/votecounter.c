@@ -49,6 +49,14 @@ int create_nodes(char* line, node_t *nodes, char* candidates) {
     return num_tokens;
 }
 
+/* Parse "Line 3+" of the input file linking nodes together
+ * Args:
+ *   'line' - Line to parse
+ *   'nodes' - Pointer to nodes to be allocated
+ */
+void link_nodes(char* line, node_t *nodes) {
+}
+
 /**Function : parseInput
  * Arguments: 'filename' - name of the input file
  * 			  'nodes' - Pointer to Nodes to be allocated by parsing
@@ -87,6 +95,7 @@ int parseInput(char *filename, node_t *nodes) {
         } else if (line_num == 2) {
             num_nodes_created = create_nodes(buf, nodes, candidates);
         } else {
+            link_nodes(buf, nodes);
         }
     }
     free(buf);
