@@ -35,7 +35,6 @@ int line_is_comment(char* line) {
 int create_nodes(char* line, node_t *nodes, char* candidates) {
     char*** argvp = (char***)malloc(MAX_NODES*1024*sizeof(char));
     int num_tokens = makeargv(line, " ", argvp);
-    printf("num_tokens: %d\n", num_tokens);
     for (int i = 0; i < num_tokens; i++) {
         nodes[i].id = i;
         strcpy(nodes[i].name, (*argvp)[i]);
@@ -46,12 +45,6 @@ int create_nodes(char* line, node_t *nodes, char* candidates) {
         nodes[i].num_children = 0;
         nodes[i].status = 0;
         nodes[i].pid = 0;
-    }
-    for (int i = 0; i < num_tokens; i++) {
-        printf("node[%d]: <id: %d, name: %s, output: %s, candidates: %s, prog: %s, num_children: %d, status: %d, pid: %d>\n",
-            i, nodes[i].id, nodes[i].name, nodes[i].output,
-            nodes[i].candidates, nodes[i].prog, nodes[i].num_children,
-            nodes[i].status, nodes[i].pid);
     }
     return num_tokens;
 }
@@ -95,10 +88,7 @@ int parseInput(char *filename, node_t *nodes) {
             num_nodes_created = create_nodes(buf, nodes, candidates);
         } else {
         }
-
-        printf("line %d: %s\n", line_num, buf);
     }
-    printf("candidates: %s\n", candidates);
     free(buf);
     free(candidates);
     return num_nodes_created;
