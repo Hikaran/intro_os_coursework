@@ -14,7 +14,6 @@
 
 #define MAX_NODES 100
 
-
 /** Return if the given line is a comment (starts with a '#') */
 int line_is_comment(char* line) {
     return line[0] == '#';
@@ -103,24 +102,6 @@ int parseInput(char *filename, node_t *nodes) {
     return num_nodes_created;
 }
 
-/**Function : parseInputLine
- * Arguments: 's' - Line to be parsed
- * 			  'n' - Pointer to Nodes to be allocated by parsing
- * Output: Number of Region Nodes allocated
- * About parseInputLine: parseInputLine is supposed to
- * 1) Split the Input file [Hint: Use makeargv(..)]
- * 2) Recognize the line containing information of
- * candidates(You can assume this will always be the first line containing data).
- * You may want to store the candidate's information
- * 3) Recognize the line containing "All Nodes"
- * (You can assume this will always be the second line containing data)
- * 4) All the other lines containing data, will show how to connect the nodes together
- * You can choose to do this by having a pointer to other nodes, or in a list etc-
- * */
-int parseInputLine(char *s, node_t *n) {
-    return 0;
-}
-
 /**Function : execNodes
  * Arguments: 'n' - Pointer to Nodes to be allocated by parsing
  * About execNodes: parseInputLine is supposed to
@@ -131,9 +112,7 @@ int parseInputLine(char *s, node_t *n) {
 void execNodes(node_t *n) {
 }
 
-
 int main(int argc, char **argv){
-
 	//Allocate space for MAX_NODES to node pointer
 	struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
 
@@ -145,9 +124,7 @@ int main(int argc, char **argv){
 	//call parseInput
 	int num = parseInput(argv[1], mainnodes);
 
-
 	//Call execNodes on the root node
-
 
 	return 0;
 }
