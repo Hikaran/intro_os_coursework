@@ -1,4 +1,4 @@
-/*
+/* TODO Fix header of this and README
  * VCforStudents.c
  *
  *  Created on: Feb 2, 2018
@@ -53,21 +53,35 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
 /* Parse "Line 3+" of the input file linking nodes together
  * Args:
  *   'line' - Line to parse
- *   'nodes' - Pointer to nodes to be allocated
+ *   'nodes' - Pointer to container of nodes
+ * About linkNodes: linkNodes is supposed to...
+ * 1) Identify parent node from line
+ * 2) Update parent node prog to "aggregate_votes"
+ * 3) Identify children of parent from line
+ * 4) Update child count, child ids, and inputs of parent
  */
 void linkNodes(char* line, node_t *nodes) {
     // Split parent name from rest of line.
     char*** link_info = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
     makeargv(line, ":", link_info);
 
-    printf("argv[0] .%s. argv[1] .%s.\n", trimwhitespace((*link_info)[0]), trimwhitespace((*link_info)[1]));
-    // Get parent node.
+    // Fetch parent node.
     node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
 
-    // 
+    // Change parent program since it is not a leaf node.
+    strcpy(parent->prog, "aggregate_votes");
+
+    // Split children and save quantity to parent.
     int num_children = makeargv(trimwhitespace((*link_info)[1]), " ", link_info);
     parent->num_children = num_children;
-    printf("%d children\n", parent->num_children);
+
+    // Copy child ids and input file names to parent node.
+    for (int i = 0; i < num_children; i++) {
+        node_t* child = findnode(nodes, trimwhitespace((*link_info)[i]));
+        parent->children[i] = child->id;
+        strcpy(parent->input[i], child->name);
+        prepend(parent->input[i], "Output_");
+    }    
 
     free(link_info);
 }
@@ -75,20 +89,12 @@ void linkNodes(char* line, node_t *nodes) {
 /**Function : parseInput
  * Arguments: 'filename' - name of the input file
  * 			  'nodes' - Pointer to Nodes to be allocated by parsing
- * Output: Number of Total Allocated Nodes
- * About parseInput: parseInput is supposed to
+ * Output: Total number of allocated nodes
+ * About parseInput: parseInput is supposed to...
  * 1) Open the Input File [There is a utility function provided in utility handbook]
  * 2) Read it line by line : Ignore the empty lines [There is a utility function provided in utility handbook]
- * 3) Call parseInputLine(..) on each one of these lines
- ..After all lines are parsed(and the DAG created)
- 4) Assign node->"prog" ie, the commands that each of the nodes has to execute
- For Leaf Nodes: ./leafcounter <arguments> is the command to be executed.
- Please refer to the utility handbook for more details.
- For Non-Leaf Nodes, that are not the root node(ie, the node which declares the winner):
- ./aggregate_votes <arguments> is the application to be executed. [Refer utility handbook]
- For the Node which declares the winner:
- This gets run only once, after all other nodes are done executing
- It uses: ./find_winner <arguments> [Refer utility handbook]
+ * 3) Exit program and print error message if any line is malformed
+ * 4) Call appropriate function on each one of these lines
  */
 int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
@@ -120,7 +126,7 @@ int parseInput(char *filename, node_t *nodes) {
 
 /**Function : execNodes
  * Arguments: 'n' - Pointer to Nodes to be allocated by parsing
- * About execNodes: parseInputLine is supposed to
+ * About execNodes:
  * If the node passed has children, fork and execute them first
  * Please note that processes which are independent of each other
  * can and should be running in a parallel fashion
@@ -140,9 +146,11 @@ int main(int argc, char **argv){
     //call parseInput
     int num = parseInput(argv[1], mainnodes);
 
-    //printgraph(mainnodes, 50);
-
     //Call execNodes on the root node
+    node_t* root = findnode(mainnodes, "Who_Won");
+    strcpy(root->prog, "find_winner");
+    printgraph(mainnodes, num);
+    execNodes(root);
 
     return 0;
 }

@@ -141,16 +141,16 @@ void printgraph(node_t* mainnodes, int num){
 			int p;
 				for (p = 0; p < num; p++){
 					if(mainnodes[p].num_children==0){
-						printf("%s","\n Leaf Node : ");
-						printf("%s",mainnodes[p].name);
+						printf(" Leaf Node: ");
+						printf("%s\n",mainnodes[p].name);
 					}
 					else{
-						printf("\n Non-Leaf Nodes %s",mainnodes[p].name);
-						printf("\n Listing their children: ");
+						printf(" Non-Leaf Node: %s\n",mainnodes[p].name);
+						printf(" List of children: \n");
 						int x;
 						for(x=0;x<mainnodes[p].num_children;x++){
-							printf("\n %d ",mainnodes[p].children[x]);
-							printf(" %s ",(findNodeByID(mainnodes, mainnodes[p].children[x])->name));
+							printf(" %d ",mainnodes[p].children[x]);
+							printf(" %s \n",(findNodeByID(mainnodes, mainnodes[p].children[x])->name));
 						}
 
 					}
