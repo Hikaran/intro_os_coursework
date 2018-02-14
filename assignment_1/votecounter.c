@@ -13,9 +13,11 @@
 #include "makeargv.h"
 
 #define MAX_NODES 100
+#define MAX_CHILDREN 10
+#define MAX_NAME_LENGTH 1024
 
 /** Return if the given line is a comment (starts with a '#') */
-int line_is_comment(char* line) {
+int lineIsComment(char* line) {
     return line[0] == '#';
 }
 
@@ -31,11 +33,11 @@ int line_is_comment(char* line) {
  * Defaulted fields of nodes: prog (to "leafcounter"), num_children (to 0), status (to 0),
  *   pid (to 0)
  */
-int create_nodes(char* line, node_t *nodes, char* candidates) {
-    char*** argvp = (char***)malloc(MAX_NODES*1024*sizeof(char));
-    int num_tokens = makeargv(line, " ", argvp);
-    for (int i = 0; i < num_tokens; i++) {
-        nodes[i].id = i;
+int createNodes(char* line, node_t *nodes, char* candidates) {
+    char*** argvp = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    int num_nodes = makeargv(line, " ", argvp);
+    for (int i = 0; i < num_nodes; i++) {
+        nodes[i].id = i + 1;
         strcpy(nodes[i].name, (*argvp)[i]);
         strcpy(nodes[i].output, (*argvp)[i]);
         prepend(nodes[i].output, "Output_");
@@ -45,7 +47,7 @@ int create_nodes(char* line, node_t *nodes, char* candidates) {
         nodes[i].status = 0;
         nodes[i].pid = 0;
     }
-    return num_tokens;
+    return num_nodes;
 }
 
 /* Parse "Line 3+" of the input file linking nodes together
@@ -53,7 +55,21 @@ int create_nodes(char* line, node_t *nodes, char* candidates) {
  *   'line' - Line to parse
  *   'nodes' - Pointer to nodes to be allocated
  */
-void link_nodes(char* line, node_t *nodes) {
+void linkNodes(char* line, node_t *nodes) {
+    // Split parent name from rest of line.
+    char*** link_info = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    makeargv(line, ":", link_info);
+
+    printf("argv[0] .%s. argv[1] .%s.\n", trimwhitespace((*link_info)[0]), trimwhitespace((*link_info)[1]));
+    // Get parent node.
+    node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
+
+    // 
+    int num_children = makeargv(trimwhitespace((*link_info)[1]), " ", link_info);
+    parent->num_children = num_children;
+    printf("%d children\n", parent->num_children);
+
+    free(link_info);
 }
 
 /**Function : parseInput
@@ -76,13 +92,13 @@ void link_nodes(char* line, node_t *nodes) {
  */
 int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
-    char* buf = (char*)malloc(1024*sizeof(char));
-    char* candidates = (char*)malloc(1024*sizeof(char));
+    char* buf = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
+    char* candidates = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
     int line_num = 0;
     int num_nodes_created = 0;
     while (buf = read_line(buf, f)) {
         buf = trimwhitespace(buf);
-        if (line_is_comment(buf)) {  // TODO: Ignore empty lines
+        if (lineIsComment(buf)) {  // TODO: Ignore empty lines
             continue;
         }
         line_num++;
@@ -92,9 +108,9 @@ int parseInput(char *filename, node_t *nodes) {
         } else if (line_num == 1) {
             strcpy(candidates, buf);
         } else if (line_num == 2) {
-            num_nodes_created = create_nodes(buf, nodes, candidates);
+            num_nodes_created = createNodes(buf, nodes, candidates);
         } else {
-            link_nodes(buf, nodes);
+            linkNodes(buf, nodes);
         }
     }
     free(buf);
@@ -113,18 +129,20 @@ void execNodes(node_t *n) {
 }
 
 int main(int argc, char **argv){
-	//Allocate space for MAX_NODES to node pointer
-	struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
+    //Allocate space for MAX_NODES to node pointer
+    struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
 
-	if (argc != 2){
-		printf("Usage: %s Program\n", argv[0]);
-		return -1;
-	}
+    if (argc != 2){
+        printf("Usage: %s Program\n", argv[0]);
+        return -1;
+    }
 
-	//call parseInput
-	int num = parseInput(argv[1], mainnodes);
+    //call parseInput
+    int num = parseInput(argv[1], mainnodes);
 
-	//Call execNodes on the root node
+    //printgraph(mainnodes, 50);
 
-	return 0;
+    //Call execNodes on the root node
+
+    return 0;
 }
