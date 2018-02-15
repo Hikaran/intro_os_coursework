@@ -1,4 +1,4 @@
-/*
+/* TODO Fix header of this and README
  * VCforStudents.c
  *
  *  Created on: Feb 2, 2018
@@ -13,9 +13,11 @@
 #include "makeargv.h"
 
 #define MAX_NODES 100
+#define MAX_CHILDREN 10
+#define MAX_NAME_LENGTH 1024
 
 /** Return if the given line is a comment (starts with a '#') */
-int line_is_comment(char* line) {
+int lineIsComment(char* line) {
     return line[0] == '#';
 }
 
@@ -31,11 +33,11 @@ int line_is_comment(char* line) {
  * Defaulted fields of nodes: prog (to "leafcounter"), num_children (to 0), status (to 0),
  *   pid (to 0)
  */
-int create_nodes(char* line, node_t *nodes, char* candidates) {
-    char*** argvp = (char***)malloc(MAX_NODES*1024*sizeof(char));
-    int num_tokens = makeargv(line, " ", argvp);
-    for (int i = 0; i < num_tokens; i++) {
-        nodes[i].id = i;
+int createNodes(char* line, node_t *nodes, char* candidates) {
+    char*** argvp = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    int num_nodes = makeargv(line, " ", argvp);
+    for (int i = 0; i < num_nodes; i++) {
+        nodes[i].id = i + 1;
         strcpy(nodes[i].name, (*argvp)[i]);
         strcpy(nodes[i].output, (*argvp)[i]);
         prepend(nodes[i].output, "Output_");
@@ -45,44 +47,64 @@ int create_nodes(char* line, node_t *nodes, char* candidates) {
         nodes[i].status = 0;
         nodes[i].pid = 0;
     }
-    return num_tokens;
+    return num_nodes;
 }
 
 /* Parse "Line 3+" of the input file linking nodes together
  * Args:
  *   'line' - Line to parse
- *   'nodes' - Pointer to nodes to be allocated
+ *   'nodes' - Pointer to container of nodes
+ * About linkNodes: linkNodes is supposed to...
+ * 1) Identify parent node from line
+ * 2) Update parent node prog to "aggregate_votes"
+ * 3) Identify children of parent from line
+ * 4) Update child count, child ids, and inputs of parent
  */
-void link_nodes(char* line, node_t *nodes) {
+void linkNodes(char* line, node_t *nodes) {
+    // Split parent name from rest of line.
+    char*** link_info = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    makeargv(line, ":", link_info);
+
+    // Fetch parent node.
+    node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
+
+    // Change parent program since it is not a leaf node.
+    strcpy(parent->prog, "aggregate_votes");
+
+    // Split children and save quantity to parent.
+    int num_children = makeargv(trimwhitespace((*link_info)[1]), " ", link_info);
+    parent->num_children = num_children;
+
+    // Copy child ids and input file names to parent node.
+    for (int i = 0; i < num_children; i++) {
+        node_t* child = findnode(nodes, trimwhitespace((*link_info)[i]));
+        parent->children[i] = child->id;
+        strcpy(parent->input[i], child->name);
+        prepend(parent->input[i], "Output_");
+    }    
+
+    free(link_info);
 }
 
 /**Function : parseInput
  * Arguments: 'filename' - name of the input file
  * 			  'nodes' - Pointer to Nodes to be allocated by parsing
- * Output: Number of Total Allocated Nodes
- * About parseInput: parseInput is supposed to
+ * Output: Total number of allocated nodes
+ * About parseInput: parseInput is supposed to...
  * 1) Open the Input File [There is a utility function provided in utility handbook]
  * 2) Read it line by line : Ignore the empty lines [There is a utility function provided in utility handbook]
- * 3) Call parseInputLine(..) on each one of these lines
- ..After all lines are parsed(and the DAG created)
- 4) Assign node->"prog" ie, the commands that each of the nodes has to execute
- For Leaf Nodes: ./leafcounter <arguments> is the command to be executed.
- Please refer to the utility handbook for more details.
- For Non-Leaf Nodes, that are not the root node(ie, the node which declares the winner):
- ./aggregate_votes <arguments> is the application to be executed. [Refer utility handbook]
- For the Node which declares the winner:
- This gets run only once, after all other nodes are done executing
- It uses: ./find_winner <arguments> [Refer utility handbook]
+ * 3) Exit program and print error message if any line is malformed
+ * 4) Call appropriate function on each one of these lines
  */
 int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
-    char* buf = (char*)malloc(1024*sizeof(char));
-    char* candidates = (char*)malloc(1024*sizeof(char));
+    char* buf = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
+    char* candidates = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
     int line_num = 0;
     int num_nodes_created = 0;
     while (buf = read_line(buf, f)) {
         buf = trimwhitespace(buf);
-        if (line_is_comment(buf)) {  // TODO: Ignore empty lines
+        if (lineIsComment(buf)) {  // TODO: Ignore empty lines
             continue;
         }
         line_num++;
@@ -92,9 +114,9 @@ int parseInput(char *filename, node_t *nodes) {
         } else if (line_num == 1) {
             strcpy(candidates, buf);
         } else if (line_num == 2) {
-            num_nodes_created = create_nodes(buf, nodes, candidates);
+            num_nodes_created = createNodes(buf, nodes, candidates);
         } else {
-            link_nodes(buf, nodes);
+            linkNodes(buf, nodes);
         }
     }
     free(buf);
@@ -104,7 +126,7 @@ int parseInput(char *filename, node_t *nodes) {
 
 /**Function : execNodes
  * Arguments: 'n' - Pointer to Nodes to be allocated by parsing
- * About execNodes: parseInputLine is supposed to
+ * About execNodes:
  * If the node passed has children, fork and execute them first
  * Please note that processes which are independent of each other
  * can and should be running in a parallel fashion
@@ -113,18 +135,22 @@ void execNodes(node_t *n) {
 }
 
 int main(int argc, char **argv){
-	//Allocate space for MAX_NODES to node pointer
-	struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
+    //Allocate space for MAX_NODES to node pointer
+    struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
 
-	if (argc != 2){
-		printf("Usage: %s Program\n", argv[0]);
-		return -1;
-	}
+    if (argc != 2){
+        printf("Usage: %s Program\n", argv[0]);
+        return -1;
+    }
 
-	//call parseInput
-	int num = parseInput(argv[1], mainnodes);
+    //call parseInput
+    int num = parseInput(argv[1], mainnodes);
 
-	//Call execNodes on the root node
+    //Call execNodes on the root node
+    node_t* root = findnode(mainnodes, "Who_Won");
+    strcpy(root->prog, "find_winner");
+    printgraph(mainnodes, num);
+    execNodes(root);
 
-	return 0;
+    return 0;
 }
