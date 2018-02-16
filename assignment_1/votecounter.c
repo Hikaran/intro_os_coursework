@@ -131,12 +131,44 @@ int parseInput(char *filename, node_t *nodes) {
  * Please note that processes which are independent of each other
  * can and should be running in a parallel fashion
  * */
-void execNodes(node_t *n) {
-    
+void execNodes(node_t* allnodes, node_t* node) {
+    int num_children = node->num_children;
+    int i = 0;
+
+    // Iteratively fork all children for each parent.
+    while (i < num_children) {
+        node->pid = fork();
+        if (node->pid == 0) {  // Child branch
+            // Find child node and treat as a new parent node.
+            node = findNodeByID(allnodes, node->children[i]);
+            if (node->id < 1) {
+                printf("Failed to find child node.\n");
+                exit(1);
+            }
+            num_children = node->num_children;
+            i = 0;
+        } else if (node->pid > 0) {  // Parent branch
+            // Move to next child.
+            i++;
+        } else {
+            perror("Fork failed");
+        }
+    }
+
+    if (num_children == 0) {
+        printf("Execute leafcounter on %s.\n", node->name);
+        exit(0);
+    } else {
+        while (wait(&(node->status)) > 0) {
+            printf("Parent %s waited on a child.\n", node->name);
+        }
+        printf("Execute aggregate_votes or find_winner on %s.\n", node->name);
+        exit(0);
+    }
 }
 
 int main(int argc, char **argv){
-    //Allocate space for MAX_NODES to node pointer
+    // Allocate space for MAX_NODES to node pointer
     struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
 
     if (argc != 2){
@@ -151,7 +183,7 @@ int main(int argc, char **argv){
     node_t* root = findnode(mainnodes, "Who_Won");
     strcpy(root->prog, "find_winner");
     printgraph(mainnodes, num);
-    execNodes(root);
+    execNodes(mainnodes, root);
 
     return 0;
 }
