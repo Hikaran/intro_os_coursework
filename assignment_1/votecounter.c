@@ -132,6 +132,7 @@ int parseInput(char *filename, node_t *nodes) {
  * can and should be running in a parallel fashion
  * */
 void execNodes(node_t *n) {
+    
 }
 
 int main(int argc, char **argv){
