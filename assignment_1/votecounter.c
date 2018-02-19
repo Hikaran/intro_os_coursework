@@ -180,7 +180,8 @@ void callExec(node_t* allnodes, node_t* node) {
         printf("%s,", input_words[j]);
     printf("]\n");
 
-    exit(0);
+    execv(node->prog, input_words);
+    // exit(0);
 }
 
 /**Function : execNodes
