@@ -144,12 +144,16 @@ void callExec(node_t* node) {
 
         printf("Node %s executing leafcounter\n", node->name);
         // execv(node->prog, input_words);
+        exit(0);
     } else if (strcmp(node->prog, "aggregate_votes") == 0) {
         printf("Node %s executing aggregate_votes\n", node->name);
+        exit(0);
     } else if (strcmp(node->prog, "find_winner") == 0) {
         printf("Node %s executing find_winner\n", node->name);
+        exit(0);
     } else {
         printf("No such program %s available\n", node->prog);
+        exit(1);
     }
 }
 
@@ -184,18 +188,12 @@ void execNodes(node_t* allnodes, node_t* node) {
         }
     }
 
-    if (num_children == 0) {
-        /* printf("Execute leafcounter on %s.\n", node->name); */
-        callExec(node);
-        exit(0);
-    } else {
+    if (num_children > 0) {
         while (wait(&(node->status)) > 0) {
             printf("Parent %s waited on a child.\n", node->name);
         }
-        /* printf("Execute aggregate_votes or find_winner on %s.\n", node->name); */
-        callExec(node);
-        exit(0);
     }
+    callExec(node);
 }
 
 int main(int argc, char **argv){
