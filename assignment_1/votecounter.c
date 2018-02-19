@@ -130,21 +130,25 @@ void callExec(node_t* node) {
     int num_candidate_words = makeargv(node->candidates, " ", candidate_words);
 
     if (strcmp(node->prog, "leafcounter") == 0) {
-        /* // 1 for prog name + 2 for input and output + num words in candidate string + 1 for NULL */
-        /* char* input_words[1 + 2 + num_candidate_words + 1]; */
+        // 1 for prog name + 2 for input and output + num words in candidate string + 1 for NULL
+        char* input_words[1 + 2 + num_candidate_words + 1];
 
-        /* strcpy(input_words[0], node->prog); */
-        /* strcpy(input_words[1], node->name); */
-        /* strcpy(input_words[2], node->output); */
-        /* // Copy candidate words with offset of 3 */
-        /* for(int i = 0 ; i ++; i < num_candidate_words) { */
-        /*     strcpy(input_words[3+i], (*candidate_words)[i]); */
-        /* } */
-        /* input_words[3 + num_candidate_words] = NULL; */
+        input_words[0] = node->prog;
+        input_words[1] = node->name;
+        input_words[2] = node->output;
+        input_words[3] = (*candidate_words)[0];
+        for (int i = 0 ; i < num_candidate_words; i++) {
+            input_words[3+i] = (*candidate_words)[i];
+        }
+        input_words[3 + num_candidate_words] = NULL;
+
+        printf("input_words: [");
+        for (int i = 0; i < num_candidate_words + 4; i++)
+            printf("%s,", input_words[i]);
+        printf("]\n");
 
         printf("Node %s executing leafcounter\n", node->name);
-        // execv(node->prog, input_words);
-        exit(0);
+        execv(node->prog, input_words);
     } else if (strcmp(node->prog, "aggregate_votes") == 0) {
         printf("Node %s executing aggregate_votes\n", node->name);
         exit(0);
@@ -155,6 +159,7 @@ void callExec(node_t* node) {
         printf("No such program %s available\n", node->prog);
         exit(1);
     }
+    free(candidate_words);
 }
 
 /**Function : execNodes
