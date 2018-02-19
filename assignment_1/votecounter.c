@@ -15,6 +15,7 @@
 #define MAX_NODES 100
 #define MAX_CHILDREN 10
 #define MAX_NAME_LENGTH 1024
+#define MAX_INPUT_LENGTH 100
 
 /** Return if the given line is a comment (starts with a '#') */
 int lineIsComment(char* line) {
@@ -124,42 +125,62 @@ int parseInput(char *filename, node_t *nodes) {
     return num_nodes_created;
 }
 
-void callExec(node_t* node) {
+void callExec(node_t* allnodes, node_t* node) {
     // Split the candidate string into words
     char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
     int num_candidate_words = makeargv(node->candidates, " ", candidate_words);
 
-    if (strcmp(node->prog, "leafcounter") == 0) {
-        // 1 for prog name + 2 for input and output + num words in candidate string + 1 for NULL
-        char* input_words[1 + 2 + num_candidate_words + 1];
+    // Children helper vars
+    int has_children = node->num_children > 0;
+    char str_num_children[MAX_NAME_LENGTH];
+    sprintf(str_num_children, "%d", node->num_children);
 
-        input_words[0] = node->prog;
-        input_words[1] = node->name;
-        input_words[2] = node->output;
-        input_words[3] = (*candidate_words)[0];
-        for (int i = 0 ; i < num_candidate_words; i++) {
-            input_words[3+i] = (*candidate_words)[i];
+    int i = 0;
+    char* input_words[MAX_INPUT_LENGTH];
+
+    // Prog name
+    input_words[i] = node->prog;
+    i++;
+
+    // Input files
+    if (has_children) {
+        input_words[i] = str_num_children;
+        i++;
+        for (int j = 0; j < node->num_children; j++) {
+            node_t* cur_child = findNodeByID(allnodes, node->children[j]);
+            input_words[i] = cur_child->output;
+            i++;
         }
-        input_words[3 + num_candidate_words] = NULL;
-
-        printf("input_words: [");
-        for (int i = 0; i < num_candidate_words + 4; i++)
-            printf("%s,", input_words[i]);
-        printf("]\n");
-
-        printf("Node %s executing leafcounter\n", node->name);
-        execv(node->prog, input_words);
-    } else if (strcmp(node->prog, "aggregate_votes") == 0) {
-        printf("Node %s executing aggregate_votes\n", node->name);
-        exit(0);
-    } else if (strcmp(node->prog, "find_winner") == 0) {
-        printf("Node %s executing find_winner\n", node->name);
-        exit(0);
     } else {
-        printf("No such program %s available\n", node->prog);
-        exit(1);
+        input_words[i] = node->name;
+        i++;
     }
-    free(candidate_words);
+
+    // Node output
+    input_words[i] = node->output;
+    i++;
+
+    // Candidate string words
+    for (int j = 0 ; j < num_candidate_words; j++) {
+        input_words[i] = (*candidate_words)[j];
+        i++;
+    }
+
+    // NULL terminator
+    input_words[i] = NULL;
+    i++;
+
+    if (i > MAX_INPUT_LENGTH) {
+        printf("ERROR ");
+    }
+
+    printf("Node %s executing %s", node->name, node->prog);
+    printf("input_words: [");
+    for (int j = 0; j < i; j++)
+        printf("%s,", input_words[j]);
+    printf("]\n");
+
+    exit(0);
 }
 
 /**Function : execNodes
@@ -198,7 +219,7 @@ void execNodes(node_t* allnodes, node_t* node) {
             printf("Parent %s waited on a child.\n", node->name);
         }
     }
-    callExec(node);
+    callExec(allnodes, node);
 }
 
 int main(int argc, char **argv){
