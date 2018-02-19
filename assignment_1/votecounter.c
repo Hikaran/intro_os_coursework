@@ -81,7 +81,7 @@ void linkNodes(char* line, node_t *nodes) {
         parent->children[i] = child->id;
         strcpy(parent->input[i], child->name);
         prepend(parent->input[i], "Output_");
-    }    
+    }
 
     free(link_info);
 }
@@ -124,6 +124,35 @@ int parseInput(char *filename, node_t *nodes) {
     return num_nodes_created;
 }
 
+void callExec(node_t* node) {
+    // Split the candidate string into words
+    char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    int num_candidate_words = makeargv(node->candidates, " ", candidate_words);
+
+    if (strcmp(node->prog, "leafcounter") == 0) {
+        /* // 1 for prog name + 2 for input and output + num words in candidate string + 1 for NULL */
+        /* char* input_words[1 + 2 + num_candidate_words + 1]; */
+
+        /* strcpy(input_words[0], node->prog); */
+        /* strcpy(input_words[1], node->name); */
+        /* strcpy(input_words[2], node->output); */
+        /* // Copy candidate words with offset of 3 */
+        /* for(int i = 0 ; i ++; i < num_candidate_words) { */
+        /*     strcpy(input_words[3+i], (*candidate_words)[i]); */
+        /* } */
+        /* input_words[3 + num_candidate_words] = NULL; */
+
+        printf("Node %s executing leafcounter\n", node->name);
+        // execv(node->prog, input_words);
+    } else if (strcmp(node->prog, "aggregate_votes") == 0) {
+        printf("Node %s executing aggregate_votes\n", node->name);
+    } else if (strcmp(node->prog, "find_winner") == 0) {
+        printf("Node %s executing find_winner\n", node->name);
+    } else {
+        printf("No such program %s available\n", node->prog);
+    }
+}
+
 /**Function : execNodes
  * Arguments: 'n' - Pointer to Nodes to be allocated by parsing
  * About execNodes:
@@ -156,13 +185,15 @@ void execNodes(node_t* allnodes, node_t* node) {
     }
 
     if (num_children == 0) {
-        printf("Execute leafcounter on %s.\n", node->name);
+        /* printf("Execute leafcounter on %s.\n", node->name); */
+        callExec(node);
         exit(0);
     } else {
         while (wait(&(node->status)) > 0) {
             printf("Parent %s waited on a child.\n", node->name);
         }
-        printf("Execute aggregate_votes or find_winner on %s.\n", node->name);
+        /* printf("Execute aggregate_votes or find_winner on %s.\n", node->name); */
+        callExec(node);
         exit(0);
     }
 }
@@ -179,7 +210,7 @@ int main(int argc, char **argv){
     //call parseInput
     int num = parseInput(argv[1], mainnodes);
 
-    //Call execNodes on the root node
+    //Call execNodes on the root node and set prog of root node
     node_t* root = findnode(mainnodes, "Who_Won");
     strcpy(root->prog, "find_winner");
     printgraph(mainnodes, num);
