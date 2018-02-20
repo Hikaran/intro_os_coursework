@@ -30,33 +30,26 @@ int lineIsComment(char* line) {
  * Args:
  *   'line' - Line to parse
  *   'nodes' - Pointer to nodes to be allocated
- *   'candidates' - array of candidates arguments to be passed used in node value initialization
+ *   'candidates' - string of candidates to be passed used in node value initialization
  * Return:
  *   Number of nodes created
  * Initialized fields of nodes: id, name, output, candidates (copy of given string)
  * Defaulted fields of nodes: prog (to "leafcounter"), num_children (to 0), status (to 0),
  *   pid (to 0)
  */
-int createNodes(char* line, node_t *nodes, char*** candidates, int num_candidate_words) {
+int createNodes(char* line, node_t *nodes, char* candidates) {
     char*** argvp = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
     int num_nodes = makeargv(line, " ", argvp);
-    int j;
     for (int i = 0; i < num_nodes; i++) {
         nodes[i].id = i + 1;
         strcpy(nodes[i].name, (*argvp)[i]);
         strcpy(nodes[i].output, (*argvp)[i]);
         prepend(nodes[i].output, "Output_");
-        for (j = 0; j < num_candidate_words; j++) {
-            strcpy(nodes[i].candidates[j], (*candidates)[j]);
-        }
+        strcpy(nodes[i].candidates, (*argvp)[i]);
         strcpy(nodes[i].prog, "leafcounter");
         nodes[i].num_children = 0;
         nodes[i].status = 0;
         nodes[i].pid = 0;
-
-        for (j = 0; j < num_candidate_words; j++) {
-            printf("%s has candidate string |%s|\n", nodes[i].name, nodes[i].candidates[j]);
-        }
     }
     return num_nodes;
 }
@@ -110,7 +103,8 @@ void linkNodes(char* line, node_t *nodes) {
 int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
     char* buf = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
-    char*** candidates = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    char* candidates = (char*)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    char*** candidates_info = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
     int num_candidate_words, num_candidates_given, num_candidates_found;
 
     int line_num = 0;
@@ -126,24 +120,25 @@ int parseInput(char *filename, node_t *nodes) {
             printf("There was an error parsing the input file.\n");
             exit(1);
         } else if (line_num == 1) {
+            // Save the candidate string.
+            strcpy(candidates, buf);
+
             // Split the candidate string.
-            num_candidate_words = makeargv(buf, " ", candidates);
+            num_candidate_words = makeargv(buf, " ", candidates_info);
             num_candidates_found = num_candidate_words - 1;
 
             // Check the candidates for correct formatting.
-            num_candidates_given = atoi((*candidates)[0]);
-            printf("Number of candidates given: %d\n", num_candidates_given);
-            printf("Number of candidates found: %d\n", num_candidates_found);
+            num_candidates_given = atoi((*candidates_info)[0]);
             if (num_candidates_given < 1) {
                 // Consider any non-numeric string as an invalid number as well.
-                printf("Invalid number of candidates given.\n");
+                printf("Invalid candidate string.\n");
                 exit(1);
             } else if (num_candidates_given != num_candidates_found) {
                 printf("Number of candidates given does not match number of candidate names.\n");
                 exit(1);
             }
         } else if (line_num == 2) {
-            num_nodes_created = createNodes(buf, nodes, candidates, num_candidate_words);
+            num_nodes_created = createNodes(buf, nodes, candidates);
         } else {
             linkNodes(buf, nodes);
         }
@@ -154,13 +149,13 @@ int parseInput(char *filename, node_t *nodes) {
 }
 
 void callExec(node_t* node) {
+    // Split the candidate string into words
+    char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    int num_candidate_words = makeargv(node->candidates, " ", candidate_words);
+
     // Retrieve number of children.
     char str_num_children[MAX_CHILDREN];
     sprintf(str_num_children, "%d", node->num_children);
-
-    // Retrieve number of candidate words.
-    int num_candidate_words = atoi(node->candidates[0]) + 1;
-    printf("Number of candidate words: %d in %s\n", num_candidate_words, node->name);
 
     int i, j = 0;
     char* input_words[MAX_INPUT_LENGTH];
@@ -189,7 +184,7 @@ void callExec(node_t* node) {
     // Retrieve candidate number and names.
     // Add 1 to account for candidate number in candidate info array.
     for (j = 0 ; j < num_candidate_words; j++) {
-        input_words[i] = node->candidates[j];
+        input_words[i] = (*candidate_words)[j];
         i++;
     }
 
