@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #define MAX_CHILDREN 10
+#define MAX_CANDIDATES 10
 #define MAX_NAME_LENGTH 1024
 
 // Structure for every node
@@ -9,7 +10,7 @@ typedef struct node{
 	char name[MAX_NAME_LENGTH];  // node's name
 	char prog[MAX_NAME_LENGTH];  // executable
 	char input[MAX_CHILDREN][MAX_NAME_LENGTH];
-	char candidates[MAX_NAME_LENGTH];  // Candidates input string from input.txt Ex. "3 A B C"
+	char candidates[MAX_CANDIDATES+1][MAX_NAME_LENGTH];  // Candidate number and names
 	char output[MAX_NAME_LENGTH];  // Output file name
 	int children[MAX_CHILDREN];  // Child node ids
 	int num_children;
