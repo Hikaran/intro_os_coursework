@@ -1,9 +1,7 @@
-/* TODO Fix header of this and README
- * VCforStudents.c
- *
- *  Created on: Feb 2, 2018
- *      Author: ayushi
- */
+/*login: swann013, tangx254
+ * date: 02/20/18
+ * name: Kristopher Swann, Joseph Tang
+ * login: swann013, tangx254 */
 
 #include <stdio.h>
 #include <unistd.h>
