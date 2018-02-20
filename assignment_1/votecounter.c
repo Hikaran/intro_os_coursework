@@ -10,6 +10,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 #include "makeargv.h"
 
 #define MAX_NODES 100
@@ -217,7 +218,14 @@ void execNodes(node_t* allnodes, node_t* node) {
 
     if (num_children > 0) {
         while (wait(&(node->status)) > 0) {
-            printf("Parent %s waited on a child.\n", node->name);
+            // Make sure child exited properly
+            if (WIFEXITED(node->status) && WEXITSTATUS(node->status) == 0) {
+                printf("Parent %s waited on a child.\n", node->name);
+            } else {
+                printf("Child of node %s terminated abnormally, exit status=%d\n",
+                        node->name, WEXITSTATUS(node->status));
+                exit(1);
+            }
         }
     }
     callExec(allnodes, node);
