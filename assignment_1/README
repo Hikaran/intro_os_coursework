@@ -3,15 +3,49 @@
 Kris Swann (swann013), Joseph Tang (tangx254)
 
 ## Purpose
+The purpose of this program is to implement an efficient and effective way to count up votes
+by coordinating how pre-compiled binaries are used for various input files.
+Votes can be divided up into different regions/subregions and the votes will be counted up
+in parallel by different process.
 
 ## Compilation
+To compile the program, make sure that you are in this directory and simply run `make`.
+This will produce a binary executable `votecounter`.
 
 ## Usage
+Copy the `votecounter` executable to where you want to run it (run `make` first). For
+example, `cp votecounter TestCase01/votecounter`.
+
+Navigate to the directory that contains your input files (`cd TestCase01`).
+
+Ensure that `leafcounter`, `aggregate_votes`, and `find_winner` are available in the directory
+containing your input files. (This is the assumption given by the TA's in the FAQ).
+
+Run `votecounter` with `input.txt` (`./votecounter input.txt`).
+
+The final results will be given in `Output_Who_Won`
 
 ## Overview/Methodology
+The program parses the given input files (`input.txt`) to set up the nodes, first by
+creating the nodes and setting their default values and then linking them together
+as specified in the input files. Nodes contain information about their input and output
+files, their children, and the program that they will run (`leafcounter, `aggregate_votes`,
+`find_winner`).
+
+After setting up the node tree structure, the nodes are then traversed in order starting
+from the root node. Each node loops through each child it has. For each child node,
+we fork and in the child process the loop is reset and the child process loops through
+all of the child node's children (grandchildren).
+
+After looping through all of the children, the parent process waits for all of the child
+processes to finish and then calls it's associated `exec` on itself.
+
+If a node has no children, then it simply it's associated `exec` on itself.
+
+The `exec` calls are constructed using the information that is contained within the node.
 
 ## Contributions
 
-Kris Swann
+Kris Swann: Initializing nodes, Call `exec` on nodes, README
 
-Joseph Tang
+Joseph Tang: Linking nodes, Order nodes to call `exec` on nodes
