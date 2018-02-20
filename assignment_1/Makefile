@@ -9,4 +9,4 @@ debug: votecounter.c
 	$(CC) $(CFLAGS) $(DBFLAGS) -o votecounter votecounter.c
 
 clean: 
-	rm votecounter
+	rm votecounter Output_*

@@ -10,12 +10,15 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "makeargv.h"
 
 #define MAX_NODES 100
 #define MAX_CHILDREN 10
 #define MAX_NAME_LENGTH 1024
 #define MAX_INPUT_LENGTH 100
+#define MAX_PROGRAM_PATH_LENGTH 20
 
 /** Return if the given line is a comment (starts with a '#') */
 int lineIsComment(char* line) {
@@ -103,8 +106,8 @@ int parseInput(char *filename, node_t *nodes) {
     char* candidates = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
     int line_num = 0;
     int num_nodes_created = 0;
-    while (buf = read_line(buf, f)) {
-        buf = trimwhitespace(buf);
+    while (read_line(buf, f)) {
+        trimwhitespace(buf);
         if (lineIsComment(buf)) {  // TODO: Ignore empty lines
             continue;
         }
@@ -125,13 +128,12 @@ int parseInput(char *filename, node_t *nodes) {
     return num_nodes_created;
 }
 
-void callExec(node_t* allnodes, node_t* node) {
+void callExec(node_t* node) {
     // Split the candidate string into words
     char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
     int num_candidate_words = makeargv(node->candidates, " ", candidate_words);
 
     // Children helper vars
-    int has_children = node->num_children > 0;
     char str_num_children[MAX_NAME_LENGTH];
     sprintf(str_num_children, "%d", node->num_children);
 
@@ -143,12 +145,11 @@ void callExec(node_t* allnodes, node_t* node) {
     i++;
 
     // Input files
-    if (has_children) {
+    if (node->num_children > 0) {
         input_words[i] = str_num_children;
         i++;
         for (int j = 0; j < node->num_children; j++) {
-            node_t* cur_child = findNodeByID(allnodes, node->children[j]);
-            input_words[i] = cur_child->output;
+            input_words[i] = (node->input)[j];
             i++;
         }
     } else {
@@ -171,17 +172,13 @@ void callExec(node_t* allnodes, node_t* node) {
     i++;
 
     if (i > MAX_INPUT_LENGTH) {
-        printf("ERROR ");
+        printf("Exceeded MAX_INPUT_LENGTH.");
+        exit(1);
     }
 
-    printf("Node %s executing %s", node->name, node->prog);
-    printf("input_words: [");
-    for (int j = 0; j < i; j++)
-        printf("%s,", input_words[j]);
-    printf("]\n");
-
-    execv(node->prog, input_words);
-    // exit(0);
+    char file_path[MAX_PROGRAM_PATH_LENGTH];
+    sprintf(file_path, "./%s", node->prog);
+    execvp(file_path, input_words);
 }
 
 /**Function : execNodes
@@ -220,7 +217,7 @@ void execNodes(node_t* allnodes, node_t* node) {
             printf("Parent %s waited on a child.\n", node->name);
         }
     }
-    callExec(allnodes, node);
+    callExec(node);
 }
 
 int main(int argc, char **argv){
