@@ -1,9 +1,7 @@
-/* TODO Fix header of this and README
- * VCforStudents.c
- *
- *  Created on: Feb 2, 2018
- *      Author: ayushi
- */
+/*login: swann013, tangx254
+ * date: 02/20/18
+ * name: Kristopher Swann, Joseph Tang
+ * login: swann013, tangx254 */
 
 #include <stdio.h>
 #include <unistd.h>
@@ -232,10 +230,10 @@ int main(int argc, char **argv){
         return -1;
     }
 
-    //call parseInput
+    // Call parseInput
     int num = parseInput(argv[1], mainnodes);
 
-    //Call execNodes on the root node and set prog of root node
+    // Call execNodes on the root node and set prog of root node
     node_t* root = findnode(mainnodes, "Who_Won");
     strcpy(root->prog, "find_winner");
     printgraph(mainnodes, num);
