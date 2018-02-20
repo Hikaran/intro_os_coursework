@@ -1,9 +1,7 @@
-/* TODO Fix header of this and README
- * VCforStudents.c
- *
- *  Created on: Feb 2, 2018
- *      Author: ayushi
- */
+/*login: swann013, tangx254
+ * date: 02/20/18
+ * name: Kristopher Swann, Joseph Tang
+ * login: swann013, tangx254 */
 
 #include <stdio.h>
 #include <unistd.h>
@@ -217,7 +215,14 @@ void execNodes(node_t* allnodes, node_t* node) {
     // Make parent wait for all children.
     if (num_children > 0) {
         while (wait(&(node->status)) > 0) {
-            //printf("Parent %s waited on a child.\n", node->name);
+            // Make sure child exited properly
+            if (WIFEXITED(node->status) && WEXITSTATUS(node->status) == 0) {
+                // printf("Parent %s waited on a child.\n", node->name);
+            } else {
+                printf("Child of node %s terminated abnormally, exit status=%d\n",
+                        node->name, WEXITSTATUS(node->status));
+                exit(1);
+            }
         }
     }
 
@@ -234,7 +239,7 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    //call parseInput
+    // Call parseInput
     int num = parseInput(argv[1], mainnodes);
 
     // Check if there is a cycle in the graph.
