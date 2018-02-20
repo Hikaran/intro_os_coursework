@@ -173,7 +173,7 @@ void callExec(node_t* node) {
     if (node->num_children > 0) {
         input_words[i] = str_num_children;
         i++;
-        for (j = 0; j < num_candidate_words; j++) {
+        for (j = 0; j < node->num_children; j++) {
             input_words[i] = (node->input)[j];
             i++;
         }
@@ -186,16 +186,12 @@ void callExec(node_t* node) {
     input_words[i] = node->output;
     i++;
 
-    printf("Pre-candidates in %s\n", node->name);
-
     // Retrieve candidate number and names.
     // Add 1 to account for candidate number in candidate info array.
     for (j = 0 ; j < num_candidate_words; j++) {
         input_words[i] = node->candidates[j];
         i++;
     }
-
-    printf("Post-candidates in %s\n", node->name);
 
     // NULL terminator
     input_words[i] = NULL;

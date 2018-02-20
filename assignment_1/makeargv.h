@@ -10,7 +10,7 @@ typedef struct node{
 	char name[MAX_NAME_LENGTH];  // node's name
 	char prog[MAX_NAME_LENGTH];  // executable
 	char input[MAX_CHILDREN][MAX_NAME_LENGTH];
-	char candidates[MAX_CANDIDATES+1][MAX_NAME_LENGTH];  // Candidate number and names
+	char candidates[MAX_CANDIDATES+1][MAX_NAME_LENGTH];  // Candidates info; +1 for quantity
 	char output[MAX_NAME_LENGTH];  // Output file name
 	int children[MAX_CHILDREN];  // Child node ids
 	int num_children;
