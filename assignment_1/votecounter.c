@@ -45,7 +45,7 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
         strcpy(nodes[i].name, (*argvp)[i]);
         strcpy(nodes[i].output, (*argvp)[i]);
         prepend(nodes[i].output, "Output_");
-        strcpy(nodes[i].candidates, (*argvp)[i]);
+        strcpy(nodes[i].candidates, candidates);
         strcpy(nodes[i].prog, "leafcounter");
         nodes[i].num_children = 0;
         nodes[i].status = 0;
