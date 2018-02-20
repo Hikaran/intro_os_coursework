@@ -230,10 +230,10 @@ int main(int argc, char **argv){
         return -1;
     }
 
-    //call parseInput
+    // Call parseInput
     int num = parseInput(argv[1], mainnodes);
 
-    //Call execNodes on the root node and set prog of root node
+    // Call execNodes on the root node and set prog of root node
     node_t* root = findnode(mainnodes, "Who_Won");
     strcpy(root->prog, "find_winner");
     printgraph(mainnodes, num);
