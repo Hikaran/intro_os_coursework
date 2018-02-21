@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include "makeargv.h"
 
@@ -15,6 +16,7 @@
 #define MAX_CHILDREN 10
 #define MAX_NAME_LENGTH 1024
 #define MAX_INPUT_LENGTH 100
+#define MAX_PROGRAM_PATH_LENGTH 20
 
 /** Return if the given line is a comment (starts with a '#') */
 int lineIsComment(char* line) {
@@ -102,8 +104,8 @@ int parseInput(char *filename, node_t *nodes) {
     char* candidates = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
     int line_num = 0;
     int num_nodes_created = 0;
-    while (buf = read_line(buf, f)) {
-        buf = trimwhitespace(buf);
+    while (read_line(buf, f)) {
+        trimwhitespace(buf);
         if (lineIsComment(buf)) {  // TODO: Ignore empty lines
             continue;
         }
@@ -124,30 +126,28 @@ int parseInput(char *filename, node_t *nodes) {
     return num_nodes_created;
 }
 
-void callExec(node_t* allnodes, node_t* node) {
+void callExec(node_t* node) {
     // Split the candidate string into words
     char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
     int num_candidate_words = makeargv(node->candidates, " ", candidate_words);
 
-    // Children helper vars
-    int has_children = node->num_children > 0;
+    // Retrieve number of children.
     char str_num_children[MAX_NAME_LENGTH];
     sprintf(str_num_children, "%d", node->num_children);
 
     int i = 0;
     char* input_words[MAX_INPUT_LENGTH];
 
-    // Prog name
+    // Retrieve program name.
     input_words[i] = node->prog;
     i++;
 
-    // Input files
-    if (has_children) {
+    // Retrieve input file names.
+    if (node->num_children > 0) {
         input_words[i] = str_num_children;
         i++;
         for (int j = 0; j < node->num_children; j++) {
-            node_t* cur_child = findNodeByID(allnodes, node->children[j]);
-            input_words[i] = cur_child->output;
+            input_words[i] = (node->input)[j];
             i++;
         }
     } else {
@@ -155,11 +155,11 @@ void callExec(node_t* allnodes, node_t* node) {
         i++;
     }
 
-    // Node output
+    // Retrieve output file name.
     input_words[i] = node->output;
     i++;
 
-    // Candidate string words
+    // Retrieve candidate number and names.
     for (int j = 0 ; j < num_candidate_words; j++) {
         input_words[i] = (*candidate_words)[j];
         i++;
@@ -170,17 +170,14 @@ void callExec(node_t* allnodes, node_t* node) {
     i++;
 
     if (i > MAX_INPUT_LENGTH) {
-        printf("ERROR ");
+        printf("Exceeded MAX_INPUT_LENGTH.");
+        exit(1);
     }
 
-    printf("Node %s executing %s", node->name, node->prog);
-    printf("input_words: [");
-    for (int j = 0; j < i; j++)
-        printf("%s,", input_words[j]);
-    printf("]\n");
-
-    execv(node->prog, input_words);
-    // exit(0);
+    // Construct relative file path for program and execute.
+    char file_path[MAX_PROGRAM_PATH_LENGTH];
+    sprintf(file_path, "./%s", node->prog);
+    execvp(file_path, input_words);
 }
 
 /**Function : execNodes
@@ -200,7 +197,7 @@ void execNodes(node_t* allnodes, node_t* node) {
         if (node->pid == 0) {  // Child branch
             // Find child node and treat as a new parent node.
             node = findNodeByID(allnodes, node->children[i]);
-            if (node->id < 1) {
+            if (node == NULL) {
                 printf("Failed to find child node.\n");
                 exit(1);
             }
@@ -210,15 +207,17 @@ void execNodes(node_t* allnodes, node_t* node) {
             // Move to next child.
             i++;
         } else {
-            perror("Fork failed");
+            perror("Fork failed\n");
+            exit(1);
         }
     }
 
+    // Make parent wait for all children.
     if (num_children > 0) {
         while (wait(&(node->status)) > 0) {
             // Make sure child exited properly
             if (WIFEXITED(node->status) && WEXITSTATUS(node->status) == 0) {
-                printf("Parent %s waited on a child.\n", node->name);
+                // printf("Parent %s waited on a child.\n", node->name);
             } else {
                 printf("Child of node %s terminated abnormally, exit status=%d\n",
                         node->name, WEXITSTATUS(node->status));
@@ -226,7 +225,9 @@ void execNodes(node_t* allnodes, node_t* node) {
             }
         }
     }
-    callExec(allnodes, node);
+
+    // All children, if any, have finished. Execute program!
+    callExec(node);
 }
 
 int main(int argc, char **argv){
@@ -235,14 +236,20 @@ int main(int argc, char **argv){
 
     if (argc != 2){
         printf("Usage: %s Program\n", argv[0]);
-        return -1;
+        exit(1);
     }
 
     // Call parseInput
     int num = parseInput(argv[1], mainnodes);
 
+    // Check if there is a cycle in the graph.
+
     // Call execNodes on the root node and set prog of root node
     node_t* root = findnode(mainnodes, "Who_Won");
+    if (root == NULL) {
+        printf("Failed to find root node.\n");
+        exit(1);
+    }
     strcpy(root->prog, "find_winner");
     printgraph(mainnodes, num);
     execNodes(mainnodes, root);
