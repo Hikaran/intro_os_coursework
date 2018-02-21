@@ -48,6 +48,7 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
         nodes[i].num_children = 0;
         nodes[i].status = 0;
         nodes[i].pid = 0;
+        nodes[i].tree_status = 0;
     }
     return num_nodes;
 }
@@ -189,6 +190,7 @@ void callExec(node_t* node) {
  * */
 void execNodes(node_t* allnodes, node_t* node) {
     int num_children = node->num_children;
+    node->tree_status = 1;  // Indicate that root is an ancestor of the current branch.
     int i = 0;
 
     // Iteratively fork all children for each parent.
@@ -199,6 +201,9 @@ void execNodes(node_t* allnodes, node_t* node) {
             node = findNodeByID(allnodes, node->children[i]);
             if (node == NULL) {
                 printf("Failed to find child node.\n");
+                exit(1);
+            } else if (node->tree_status == 1) {  // Check if child node is an ancestor of the current branch.
+                printf("There is a cycle in the graph involving node %s.\n", node->name);
                 exit(1);
             }
             num_children = node->num_children;
@@ -227,6 +232,7 @@ void execNodes(node_t* allnodes, node_t* node) {
     }
 
     // All children, if any, have finished. Execute program!
+    node->tree_status = 2;
     callExec(node);
 }
 
@@ -242,8 +248,6 @@ int main(int argc, char **argv){
     // Call parseInput
     int num = parseInput(argv[1], mainnodes);
 
-    // Check if there is a cycle in the graph.
-
     // Call execNodes on the root node and set prog of root node
     node_t* root = findnode(mainnodes, "Who_Won");
     if (root == NULL) {
@@ -251,7 +255,7 @@ int main(int argc, char **argv){
         exit(1);
     }
     strcpy(root->prog, "find_winner");
-    printgraph(mainnodes, num);
+    //printgraph(mainnodes, num);
     execNodes(mainnodes, root);
 
     return 0;
