@@ -42,8 +42,8 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
     int num_nodes = makeargv(line, " ", argvp);
     for (int i = 0; i < num_nodes; i++) {
         nodes[i].id = i + 1;
-        strcpy(nodes[i].name, (*argvp)[i]);
-        strcpy(nodes[i].output, (*argvp)[i]);
+        strcpy(nodes[i].name, trimwhitespace((*argvp)[i]));
+        strcpy(nodes[i].output, trimwhitespace((*argvp)[i]));
         prepend(nodes[i].output, "Output_");
         strcpy(nodes[i].candidates, candidates);
         strcpy(nodes[i].prog, "leafcounter");
@@ -123,7 +123,7 @@ int parseInput(char *filename, node_t *nodes) {
     int line_num = 0;
     int num_nodes_created = 0;
     while (read_line(buf, f)) {
-        trimwhitespace(buf);
+        buf = trimwhitespace(buf);
         if (lineIsComment(buf) || isspace(buf[0])) {
             continue;
         }
