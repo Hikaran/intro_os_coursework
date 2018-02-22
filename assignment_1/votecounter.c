@@ -66,7 +66,10 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
 void linkNodes(char* line, node_t *nodes) {
     // Split parent name from rest of line.
     char*** link_info = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
-    makeargv(line, ":", link_info);
+    if (makeargv(line, ":", link_info) != 2) {
+        printf("Line |%s| is incorrectly formatted.\n", line);
+        exit(1);
+    }
 
     // Fetch parent node.
     node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
@@ -123,7 +126,7 @@ int parseInput(char *filename, node_t *nodes) {
             printf("There was an error parsing the input file.\n");
             exit(1);
         } else if (line_num == 1) {
-            strcpy(candidates, buf);
+            strcpy(candidates, buf); // TODO Make sure candidates are correctly formatted
         } else if (line_num == 2) {
             num_nodes_created = createNodes(buf, nodes, candidates);
         } else {
@@ -160,7 +163,7 @@ void callExec(node_t* node) {
             i++;
         }
     } else {
-        input_words[i] = node->name;
+        input_words[i] = node->name;  // TODO make sure input file exists
         i++;
     }
 

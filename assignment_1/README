@@ -47,6 +47,6 @@ The `exec` calls are constructed using the information that is contained within 
 
 ## Contributions
 
-Kris Swann: Initializing nodes, Call `exec` on nodes, README
+Kris Swann: Initializing nodes, Call `exec` on nodes, README, Wait error handling
 
-Joseph Tang: Linking nodes, Order nodes to call `exec` on nodes
+Joseph Tang: Linking nodes, Order nodes to call `exec` on nodes, Miscellaneous error handling, Extra credit
