@@ -27,16 +27,22 @@ Run `votecounter` with `input.txt` (`./votecounter input.txt`).
 The final results will be given in `Output_Who_Won`
 
 ## Overview/Methodology
-The program parses the given input files (`input.txt`) to set up the nodes, first by
-creating the nodes and setting their default values and then linking them together
-as specified in the input files. Nodes contain information about their input and output
-files, their children, and the program that they will run (`leafcounter, `aggregate_votes`,
-`find_winner`).
+The program parses the given input files (`input.txt`) to get candidate information and
+set up the nodes--first by creating the nodes and setting their default values, then 
+linking them together as specified in the input files. Nodes contain information about 
+their input and output files, their children, and the program that they will run 
+(`leafcounter, `aggregate_votes`, `find_winner`).
 
 After setting up the node tree structure, the nodes are then traversed in order starting
 from the root node. Each node loops through each child it has. For each child node,
 we fork and in the child process the loop is reset and the child process loops through
 all of the child node's children (grandchildren).
+
+During the forking process, each node gets flagged as part of the current branch under
+execution. Upon finding each child, the flag is checked; if raised, the tree contains
+a cycle and an error is thrown. The flag is lowered after all of a node's children have
+exited. The flags are part of the node struct such that a raised flag is only passed to
+direct descendants.
 
 After looping through all of the children, the parent process waits for all of the child
 processes to finish and then calls it's associated `exec` on itself.

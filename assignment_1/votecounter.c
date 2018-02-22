@@ -271,7 +271,7 @@ void execNodes(node_t* allnodes, node_t* node) {
                 printf("There is a cycle in the graph involving node %s.\n", node->name);
                 exit(1);
             }
-            node->tree_status = 1;  // Mark node as part of current branch.
+            node->tree_status = 1;  // Flag node as part of current branch.
             num_children = node->num_children;
             i = 0;
         } else if (node->pid > 0) {  // Parent branch
@@ -297,7 +297,7 @@ void execNodes(node_t* allnodes, node_t* node) {
         }
     }
 
-    // All children, if any, have finished. Execute program!
+    // All children, if any, have finished. Lower flag and execute program!
     node->tree_status = 2;
     callExec(node);
 }
