@@ -70,6 +70,10 @@ void linkNodes(char* line, node_t *nodes) {
 
     // Fetch parent node.
     node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
+    if (parent == NULL) {
+        printf("Failed to find parent %s.\n", trimwhitespace((*link_info)[0]));
+        exit(1);
+    }
 
     // Change parent program since it is not a leaf node.
     strcpy(parent->prog, "aggregate_votes");
@@ -81,6 +85,10 @@ void linkNodes(char* line, node_t *nodes) {
     // Copy child ids and input file names to parent node.
     for (int i = 0; i < num_children; i++) {
         node_t* child = findnode(nodes, trimwhitespace((*link_info)[i]));
+        if (child == NULL) {
+            printf("Failed to find child %s under parent %s.\n", trimwhitespace((*link_info)[i]), parent->name);
+            exit(1);
+        }
         parent->children[i] = child->id;
         strcpy(parent->input[i], child->name);
         prepend(parent->input[i], "Output_");
@@ -166,12 +174,14 @@ void callExec(node_t* node) {
         i++;
     }
 
+    free(candidate_words);
+
     // NULL terminator
     input_words[i] = NULL;
     i++;
 
     if (i > MAX_INPUT_LENGTH) {
-        printf("Exceeded MAX_INPUT_LENGTH.");
+        printf("Exceeded MAX_INPUT_LENGTH.\n");
         exit(1);
     }
 
@@ -179,6 +189,8 @@ void callExec(node_t* node) {
     char file_path[MAX_PROGRAM_PATH_LENGTH];
     sprintf(file_path, "./%s", node->prog);
     execvp(file_path, input_words);
+    perror("Exec failed");
+    exit(1);
 }
 
 /**Function : execNodes
@@ -206,14 +218,14 @@ void execNodes(node_t* allnodes, node_t* node) {
                 printf("There is a cycle in the graph involving node %s.\n", node->name);
                 exit(1);
             }
-            node->tree_status = 1;
+            node->tree_status = 1;  // Mark node as part of current branch.
             num_children = node->num_children;
             i = 0;
         } else if (node->pid > 0) {  // Parent branch
             // Move to next child.
             i++;
         } else {
-            perror("Fork failed\n");
+            perror("Fork failed");
             exit(1);
         }
     }
