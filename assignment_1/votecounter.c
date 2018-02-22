@@ -10,10 +10,12 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <ctype.h>
 #include "makeargv.h"
 
 #define MAX_NODES 100
 #define MAX_CHILDREN 10
+#define MAX_CANDIDATES 10
 #define MAX_NAME_LENGTH 1024
 #define MAX_INPUT_LENGTH 100
 #define MAX_PROGRAM_PATH_LENGTH 20
@@ -112,13 +114,17 @@ void linkNodes(char* line, node_t *nodes) {
  */
 int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
-    char* buf = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
-    char* candidates = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
+    if (f == NULL) {
+        perror("Failed to open input file");
+        exit(1);
+    }
+    char* buf = (char*)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    char* candidates = (char*)malloc(MAX_CANDIDATES*MAX_NAME_LENGTH*sizeof(char));
     int line_num = 0;
     int num_nodes_created = 0;
     while (read_line(buf, f)) {
         trimwhitespace(buf);
-        if (lineIsComment(buf) || isspace(buf[0])) {  // TODO: Ignore empty lines
+        if (lineIsComment(buf) || isspace(buf[0])) {
             continue;
         }
         line_num++;
@@ -126,16 +132,35 @@ int parseInput(char *filename, node_t *nodes) {
             printf("There was an error parsing the input file.\n");
             exit(1);
         } else if (line_num == 1) {
-            strcpy(candidates, buf); // TODO Make sure candidates are correctly formatted
+            strcpy(candidates, buf);
+
+            // Ensure that candidates were correctly specified.
+            if (!isdigit(buf[0])) {
+                printf("Candidate line is missing or did not begin with a number.\n");
+                exit(1);
+            }
+            char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+            int num_candidate_words = makeargv(buf, " ", candidate_words);
+            int num_candidates_given = atoi((*candidate_words)[0]);
+            if (num_candidate_words != num_candidates_given + 1) {
+                printf("Incorrect number of candidates given.\n");
+                exit(1);
+            }
+
+            free(candidate_words);
         } else if (line_num == 2) {
             num_nodes_created = createNodes(buf, nodes, candidates);
+            if (num_nodes_created < 2) {
+                printf("Not enough regions were provided.\n");
+                exit(1);
+            }
         } else {
             linkNodes(buf, nodes);
         }
     }
 
     if (line_num < 3) {
-        printf("District relationships were not provided.\n");
+        printf("Region relationships were not provided.\n");
         exit(1);
     }
     free(buf);
