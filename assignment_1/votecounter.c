@@ -118,7 +118,7 @@ int parseInput(char *filename, node_t *nodes) {
     int num_nodes_created = 0;
     while (read_line(buf, f)) {
         trimwhitespace(buf);
-        if (lineIsComment(buf)) {  // TODO: Ignore empty lines
+        if (lineIsComment(buf) || isspace(buf[0])) {  // TODO: Ignore empty lines
             continue;
         }
         line_num++;
@@ -132,6 +132,11 @@ int parseInput(char *filename, node_t *nodes) {
         } else {
             linkNodes(buf, nodes);
         }
+    }
+
+    if (line_num < 3) {
+        printf("District relationships were not provided.\n");
+        exit(1);
     }
     free(buf);
     free(candidates);
@@ -271,7 +276,6 @@ int main(int argc, char **argv){
         exit(1);
     }
     strcpy(root->prog, "find_winner");
-    //printgraph(mainnodes, num);
     execNodes(mainnodes, root);
 
     return 0;
