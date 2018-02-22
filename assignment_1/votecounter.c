@@ -184,16 +184,36 @@ void callExec(node_t* node) {
     input_words[i] = node->prog;
     i++;
 
-    // Retrieve input file names.
+    // Retrieve input file names and check if they exist.
+    int file_check;
+    char file_name[MAX_NAME_LENGTH];
     if (node->num_children > 0) {
         input_words[i] = str_num_children;
         i++;
         for (int j = 0; j < node->num_children; j++) {
+            sprintf(file_name, "./%s", (node->input)[j]);
+            if (file_check = open(file_name, O_RDONLY) < 0) {
+                perror(file_name);
+                exit(1);
+            } else {
+                if (close(file_check) < 0) {
+                    perror("WARNING: File not closed");
+                }
+            }
             input_words[i] = (node->input)[j];
             i++;
         }
     } else {
-        input_words[i] = node->name;  // TODO make sure input file exists
+        sprintf(file_name, "./%s", node->name);
+        if (file_check = open(file_name, O_RDONLY) < 0) {
+            perror(file_name);
+            exit(1);
+        } else {
+            if (close(file_check) < 0) {
+                perror("WARNING: File not closed");
+            }
+        }
+        input_words[i] = node->name;
         i++;
     }
 
