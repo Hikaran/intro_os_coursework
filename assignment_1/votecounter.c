@@ -206,6 +206,7 @@ void execNodes(node_t* allnodes, node_t* node) {
                 printf("There is a cycle in the graph involving node %s.\n", node->name);
                 exit(1);
             }
+            node->tree_status = 1;
             num_children = node->num_children;
             i = 0;
         } else if (node->pid > 0) {  // Parent branch
