@@ -16,6 +16,7 @@ typedef struct node{
 	int status;  // Whether or not node has run
 	pid_t pid;
 	int id;
+	int tree_status; // Variable used to check for cycles.
 }node_t;
 
 FILE* file_open(char* file_name);
