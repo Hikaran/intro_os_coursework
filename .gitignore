@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Project-specific Executables
+*/votecounter
+*/TestCase01/votecounter
+*/TestCase02/votecounter
+
+# Project-specific Files
+**/TestCase01
+**/TestCase02
