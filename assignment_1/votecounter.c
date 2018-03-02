@@ -10,10 +10,12 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <ctype.h>
 #include "makeargv.h"
 
 #define MAX_NODES 100
 #define MAX_CHILDREN 10
+#define MAX_CANDIDATES 10
 #define MAX_NAME_LENGTH 1024
 #define MAX_INPUT_LENGTH 100
 #define MAX_PROGRAM_PATH_LENGTH 20
@@ -66,10 +68,17 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
 void linkNodes(char* line, node_t *nodes) {
     // Split parent name from rest of line.
     char*** link_info = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
-    makeargv(line, ":", link_info);
+    if (makeargv(line, ":", link_info) != 2) {
+        printf("Line |%s| is incorrectly formatted.\n", line);
+        exit(1);
+    }
 
     // Fetch parent node.
     node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
+    if (parent == NULL) {
+        printf("Failed to find parent %s.\n", trimwhitespace((*link_info)[0]));
+        exit(1);
+    }
 
     // Change parent program since it is not a leaf node.
     strcpy(parent->prog, "aggregate_votes");
@@ -81,6 +90,10 @@ void linkNodes(char* line, node_t *nodes) {
     // Copy child ids and input file names to parent node.
     for (int i = 0; i < num_children; i++) {
         node_t* child = findnode(nodes, trimwhitespace((*link_info)[i]));
+        if (child == NULL) {
+            printf("Failed to find child %s under parent %s.\n", trimwhitespace((*link_info)[i]), parent->name);
+            exit(1);
+        }
         parent->children[i] = child->id;
         strcpy(parent->input[i], child->name);
         prepend(parent->input[i], "Output_");
@@ -101,13 +114,17 @@ void linkNodes(char* line, node_t *nodes) {
  */
 int parseInput(char *filename, node_t *nodes) {
     FILE* f = file_open(filename);
-    char* buf = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
-    char* candidates = (char*)malloc(MAX_NAME_LENGTH*sizeof(char));
+    if (f == NULL) {
+        perror("Failed to open input file");
+        exit(1);
+    }
+    char* buf = (char*)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+    char* candidates = (char*)malloc(MAX_CANDIDATES*MAX_NAME_LENGTH*sizeof(char));
     int line_num = 0;
     int num_nodes_created = 0;
     while (read_line(buf, f)) {
         trimwhitespace(buf);
-        if (lineIsComment(buf)) {  // TODO: Ignore empty lines
+        if (lineIsComment(buf) || isspace(buf[0])) {
             continue;
         }
         line_num++;
@@ -116,11 +133,35 @@ int parseInput(char *filename, node_t *nodes) {
             exit(1);
         } else if (line_num == 1) {
             strcpy(candidates, buf);
+
+            // Ensure that candidates were correctly specified.
+            if (!isdigit(buf[0])) {
+                printf("Candidate line is missing or did not begin with a number.\n");
+                exit(1);
+            }
+            char*** candidate_words = (char***)malloc(MAX_NODES*MAX_NAME_LENGTH*sizeof(char));
+            int num_candidate_words = makeargv(buf, " ", candidate_words);
+            int num_candidates_given = atoi((*candidate_words)[0]);
+            if (num_candidate_words != num_candidates_given + 1) {
+                printf("Incorrect number of candidates given.\n");
+                exit(1);
+            }
+
+            free(candidate_words);
         } else if (line_num == 2) {
             num_nodes_created = createNodes(buf, nodes, candidates);
+            if (num_nodes_created < 2) {
+                printf("Not enough regions were provided.\n");
+                exit(1);
+            }
         } else {
             linkNodes(buf, nodes);
         }
+    }
+
+    if (line_num < 3) {
+        printf("Region relationships were not provided.\n");
+        exit(1);
     }
     free(buf);
     free(candidates);
@@ -143,15 +184,35 @@ void callExec(node_t* node) {
     input_words[i] = node->prog;
     i++;
 
-    // Retrieve input file names.
+    // Retrieve input file names and check if they exist.
+    int file_check;
+    char file_name[MAX_NAME_LENGTH];
     if (node->num_children > 0) {
         input_words[i] = str_num_children;
         i++;
         for (int j = 0; j < node->num_children; j++) {
+            sprintf(file_name, "./%s", (node->input)[j]);
+            if (file_check = open(file_name, O_RDONLY) < 0) {
+                perror(file_name);
+                exit(1);
+            } else {
+                if (close(file_check) < 0) {
+                    perror("WARNING: File not closed");
+                }
+            }
             input_words[i] = (node->input)[j];
             i++;
         }
     } else {
+        sprintf(file_name, "./%s", node->name);
+        if (file_check = open(file_name, O_RDONLY) < 0) {
+            perror(file_name);
+            exit(1);
+        } else {
+            if (close(file_check) < 0) {
+                perror("WARNING: File not closed");
+            }
+        }
         input_words[i] = node->name;
         i++;
     }
@@ -166,12 +227,14 @@ void callExec(node_t* node) {
         i++;
     }
 
+    free(candidate_words);
+
     // NULL terminator
     input_words[i] = NULL;
     i++;
 
     if (i > MAX_INPUT_LENGTH) {
-        printf("Exceeded MAX_INPUT_LENGTH.");
+        printf("Exceeded MAX_INPUT_LENGTH.\n");
         exit(1);
     }
 
@@ -179,6 +242,8 @@ void callExec(node_t* node) {
     char file_path[MAX_PROGRAM_PATH_LENGTH];
     sprintf(file_path, "./%s", node->prog);
     execvp(file_path, input_words);
+    perror("Exec failed");
+    exit(1);
 }
 
 /**Function : execNodes
@@ -206,14 +271,14 @@ void execNodes(node_t* allnodes, node_t* node) {
                 printf("There is a cycle in the graph involving node %s.\n", node->name);
                 exit(1);
             }
-            node->tree_status = 1;
+            node->tree_status = 1;  // Flag node as part of current branch.
             num_children = node->num_children;
             i = 0;
         } else if (node->pid > 0) {  // Parent branch
             // Move to next child.
             i++;
         } else {
-            perror("Fork failed\n");
+            perror("Fork failed");
             exit(1);
         }
     }
@@ -232,7 +297,7 @@ void execNodes(node_t* allnodes, node_t* node) {
         }
     }
 
-    // All children, if any, have finished. Execute program!
+    // All children, if any, have finished. Lower flag and execute program!
     node->tree_status = 2;
     callExec(node);
 }
@@ -256,7 +321,6 @@ int main(int argc, char **argv){
         exit(1);
     }
     strcpy(root->prog, "find_winner");
-    //printgraph(mainnodes, num);
     execNodes(mainnodes, root);
 
     return 0;
