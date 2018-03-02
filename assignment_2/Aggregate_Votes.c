@@ -74,7 +74,7 @@ void wait_for_all_children() {
  *
  * Each subdir will create a new process and rerun Aggregate_Votes.
  */
-void aggregate_sub_dirs(char* curpath, DIR* dir) {
+void aggregate_sub_dirs(char* path, DIR* dir) {
   rewinddir(dir);
   struct dirent *entry;
   errno = 0;  // Reset errno
@@ -95,7 +95,7 @@ void aggregate_sub_dirs(char* curpath, DIR* dir) {
     } else if (pid == 0) {
       // Child
       char newpath[MAX_STRING_LEN];
-      sprintf(newpath, "%s/%s", curpath, entry->d_name);
+      sprintf(newpath, "%s/%s", path, entry->d_name);
       execl("./Aggregate_Votes", "Aggregate_Votes", newpath, (char*) NULL);
       perror("Error after exec");
     }
@@ -107,6 +107,14 @@ void aggregate_sub_dirs(char* curpath, DIR* dir) {
   rewinddir(dir);
 
   wait_for_all_children();
+}
+
+void aggregate_cur_dir(char* path, DIR* dir) {
+  printf("agg node: %s\n", path);
+}
+
+void run_leaf_node(char* path) {
+  printf("leaf node: %s\n", path);
 }
 
 int main(int argc, char **argv) {
@@ -124,10 +132,10 @@ int main(int argc, char **argv) {
   }
 
   if (is_leaf_node(dir)) {
-    printf("leaf node: %s\n", path);
+    run_leaf_node(path);
   } else {
     aggregate_sub_dirs(path, dir);
-    printf("agg node: %s\n", path);
+    aggregate_cur_dir(path, dir);
   }
 
   return 0;
