@@ -17,14 +17,14 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  // Make sure path resolves to a valid directory. If not, throw an error and exit.
   DIR* dir = opendir(argv[1]);
   if (!dir) {
     perror("Failed to open initial directory");
     exit(1);
-  } else {
-    printf("Success!\n");
   }
 
+  struct dirent *entry;
 
   return 0;
 }
