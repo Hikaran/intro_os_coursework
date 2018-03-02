@@ -223,7 +223,7 @@ void callExec(node_t* node) {
 
     // Retrieve candidate number and names.
     for (int j = 0 ; j < num_candidate_words; j++) {
-        input_words[i] = trimwhitespace((*candidate_words)[j]);
+        input_words[i] = (*candidate_words)[j];
         i++;
     }
 
