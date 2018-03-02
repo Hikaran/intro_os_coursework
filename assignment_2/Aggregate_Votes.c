@@ -18,7 +18,6 @@
 /**
  * Return if dir is a leaf node.
  * A dir is a leaf node if it has no subdirs and contains a votes.txt file.
- * Dir is reset (rewinddir) after call.
  */
 int is_leaf_node(DIR* dir) {
   rewinddir(dir);
@@ -41,7 +40,8 @@ int is_leaf_node(DIR* dir) {
   if (errno) {
     perror("readdir() failed");
     exit(1);
-  } 
+  }
+  rewinddir(dir);
 
   if (has_votes_file) {
     return 1;
@@ -103,7 +103,7 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
   if (errno) {
     perror("readdir() failed");
     exit(1);
-  } 
+  }
   rewinddir(dir);
 
   wait_for_all_children();
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   if (argc != 2) {
     printf("Usage: ./Aggregate_Votes <path>\n");
     exit(1);
-  } 
+  }
   char* path = argv[1];
 
   // Make sure path is a valid dir
