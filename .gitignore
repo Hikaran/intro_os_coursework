@@ -55,6 +55,9 @@ dkms.conf
 */votecounter
 */TestCase01/votecounter
 */TestCase02/votecounter
+Vote_Counter
+Aggregate_Votes
+Leaf_Counter
 
 # Project-specific Files
 **/TestCase01
