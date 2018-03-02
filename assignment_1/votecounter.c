@@ -42,8 +42,10 @@ int createNodes(char* line, node_t *nodes, char* candidates) {
     int num_nodes = makeargv(line, " ", argvp);
     for (int i = 0; i < num_nodes; i++) {
         nodes[i].id = i + 1;
-        strcpy(nodes[i].name, trimwhitespace((*argvp)[i]));
-        strcpy(nodes[i].output, trimwhitespace((*argvp)[i]));
+        strcpy(nodes[i].name, (*argvp)[i]);
+        trimwhitespace(nodes[i].name);
+        strcpy(nodes[i].output, (*argvp)[i]);
+        trimwhitespace(nodes[i].output);
         prepend(nodes[i].output, "Output_");
         strcpy(nodes[i].candidates, candidates);
         strcpy(nodes[i].prog, "leafcounter");
@@ -74,9 +76,12 @@ void linkNodes(char* line, node_t *nodes) {
     }
 
     // Fetch parent node.
-    node_t* parent = findnode(nodes, trimwhitespace((*link_info)[0]));
+    char node_name[MAX_NAME_LENGTH];
+    strcpy(node_name, (*link_info)[0]);
+    trimwhitespace(node_name);
+    node_t* parent = findnode(nodes, node_name);
     if (parent == NULL) {
-        printf("Failed to find parent %s.\n", trimwhitespace((*link_info)[0]));
+        printf("Failed to find parent %s.\n", node_name);
         exit(1);
     }
 
@@ -89,9 +94,11 @@ void linkNodes(char* line, node_t *nodes) {
 
     // Copy child ids and input file names to parent node.
     for (int i = 0; i < num_children; i++) {
-        node_t* child = findnode(nodes, trimwhitespace((*link_info)[i]));
+        strcpy(node_name, (*link_info)[i]);
+        trimwhitespace(node_name);
+        node_t* child = findnode(nodes, node_name);
         if (child == NULL) {
-            printf("Failed to find child %s under parent %s.\n", trimwhitespace((*link_info)[i]), parent->name);
+            printf("Failed to find child %s under parent %s.\n", node_name, parent->name);
             exit(1);
         }
         parent->children[i] = child->id;
@@ -123,7 +130,7 @@ int parseInput(char *filename, node_t *nodes) {
     int line_num = 0;
     int num_nodes_created = 0;
     while (read_line(buf, f)) {
-        buf = trimwhitespace(buf);
+        trimwhitespace(buf);
         if (lineIsComment(buf) || isspace(buf[0])) {
             continue;
         }
@@ -192,6 +199,7 @@ void callExec(node_t* node) {
         i++;
         for (int j = 0; j < node->num_children; j++) {
             sprintf(file_name, "./%s", (node->input)[j]);
+            trimwhitespace(file_name);
             if (file_check = open(file_name, O_RDONLY) < 0) {
                 perror(file_name);
                 exit(1);
@@ -205,6 +213,7 @@ void callExec(node_t* node) {
         }
     } else {
         sprintf(file_name, "./%s", node->name);
+        trimwhitespace(file_name);
         if (file_check = open(file_name, O_RDONLY) < 0) {
             perror(file_name);
             exit(1);
@@ -223,7 +232,7 @@ void callExec(node_t* node) {
 
     // Retrieve candidate number and names.
     for (int j = 0 ; j < num_candidate_words; j++) {
-        input_words[i] = trimwhitespace((*candidate_words)[j]);
+        input_words[i] = (*candidate_words)[j];
         i++;
     }
 
