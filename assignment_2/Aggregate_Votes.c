@@ -12,6 +12,7 @@
 #include <errno.h>
 
 #include "util.h"
+#include "votes.c"
 
 #define MAX_STRING_LEN 1024
 
@@ -131,12 +132,27 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  if (is_leaf_node(dir)) {
-    run_leaf_node(path);
-  } else {
-    aggregate_sub_dirs(path, dir);
-    aggregate_cur_dir(path, dir);
-  }
+  /* if (is_leaf_node(dir)) { */
+  /*   run_leaf_node(path); */
+  /* } else { */
+  /*   aggregate_sub_dirs(path, dir); */
+  /*   aggregate_cur_dir(path, dir); */
+  /* } */
+
+
+  struct votes* head = NULL;
+
+  head = add_votes(head, "abc", 3);
+  add_votes(head, "abc", 4);
+  add_votes(head, "def", 5);
+
+  printf("head=<%s,%d>\n", head->candidate, head->votes);
+  printf("head->next=<%s,%d>\n", head->next->candidate, head->next->votes);
+
+  char buf[1024] = {'\0'};
+  to_string(buf, head);
+  printf("to_string=%s\n", buf);
+  free_votes(head);
 
   return 0;
 }
