@@ -11,8 +11,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "util.h"
 #include "votes.c"
+#include "util.h"
 
 #define MAX_STRING_LEN 1024
 
@@ -142,9 +142,8 @@ int main(int argc, char **argv) {
 
   struct votes* head = NULL;
 
-  head = add_votes(head, "abc", 3);
-  add_votes(head, "abc", 4);
-  add_votes(head, "def", 5);
+  char str[50] = "    abc:3,   def:5,                      abc:4";
+  head = add_votes_from_string(str, head);
 
   printf("head=<%s,%d>\n", head->candidate, head->votes);
   printf("head->next=<%s,%d>\n", head->next->candidate, head->next->votes);
