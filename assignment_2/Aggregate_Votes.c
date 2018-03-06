@@ -111,7 +111,7 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
       // Child
       char newpath[MAX_STRING_LEN];
       sprintf(newpath, "%s/%s", path, entry->d_name);
-      // silence_output();
+      silence_output();
       execl("./Aggregate_Votes", "Aggregate_Votes", newpath, (char*) NULL);
       perror("Error after exec");
     }
@@ -151,6 +151,7 @@ void write_results_to_dir(char* path, struct votes *head) {
   put_last_seperator(cur_dir, path, "/");
   char sum_path[MAX_STRING_LEN];
   sprintf(sum_path, "%s/%s.txt", path, cur_dir);
+  printf("%s\n", sum_path);
 
   FILE *sum_results = fopen(sum_path, "we");
   if (sum_results == NULL) {
@@ -166,7 +167,6 @@ void write_results_to_dir(char* path, struct votes *head) {
 }
 
 void aggregate_cur_dir(char* path, DIR* dir) {
-  printf("agg node: %s\n", path);
   rewinddir(dir);
   struct dirent *entry;
   struct votes* sum_votes = NULL;
@@ -204,7 +204,7 @@ void aggregate_cur_dir(char* path, DIR* dir) {
 }
 
 void run_leaf_node(char* path) {
-  // silence_output();
+  silence_output();
   printf("leaf node: %s\n", path);
 }
 
