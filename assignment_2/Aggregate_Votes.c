@@ -110,8 +110,82 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
   wait_for_all_children();
 }
 
+/** Split str by sep and copy last result into buf. */
+void put_last_seperator(char* buf, char* str, char* sep) {
+    char ***splits = malloc(strlen(str)*sizeof(char));
+    int num_items = makeargv(str, sep, splits);
+    strcpy(buf, (*splits)[num_items-1]);
+    free(splits);
+}
+
+/** Read first line of file at path into buf. */
+void read_first_line(char* buf, char* path) {
+  FILE *results = fopen(path, "re");
+  if (results == NULL) {
+    printf("Error opening file %s\n", path);
+    exit(1);
+  }
+  fgets(buf, MAX_STRING_LEN, results);
+  fclose(results);
+}
+
+/** Write results to current dir. */
+void write_results_to_dir(char* path, struct votes *head) {
+  // Get output file
+  char cur_dir[MAX_STRING_LEN];
+  put_last_seperator(cur_dir, path, "/");
+  char sum_path[MAX_STRING_LEN];
+  sprintf(sum_path, "%s/%s.txt", path, cur_dir);
+
+  FILE *sum_results = fopen(sum_path, "we");
+  if (sum_results == NULL) {
+    printf("Error opening file %s\n", sum_path);
+    exit(0);
+  }
+
+  // Write results to file
+  char sum_str[MAX_STRING_LEN] = {'\0'};
+  to_string(sum_str, head);
+  fprintf(sum_results, "%s\n", sum_str);
+  fclose(sum_results);
+}
+
 void aggregate_cur_dir(char* path, DIR* dir) {
   printf("agg node: %s\n", path);
+  rewinddir(dir);
+  struct dirent *entry;
+  struct votes* sum_votes = NULL;
+  errno = 0;  // Reset errno
+
+  // Sum results in each subdir
+  while (entry = readdir(dir)) {
+    // Ignore "." and ".." dirs and non dir entries
+    if (strcmp(entry->d_name, ".") == 0 ||
+        strcmp(entry->d_name, "..") == 0 ||
+        entry->d_type != DT_DIR) {
+      continue;
+    }
+
+    // Get path to results in subdir
+    char subdir_results_path[MAX_STRING_LEN];
+    sprintf(subdir_results_path, "%s/%s/%s.txt", path, entry->d_name, entry->d_name);
+
+    // Add results and update head if necessary
+    char buf[MAX_STRING_LEN];
+    read_first_line(buf, subdir_results_path);
+    if (sum_votes == NULL) {
+      sum_votes = add_votes_from_string(buf, sum_votes);
+    } else {
+      add_votes_from_string(buf, sum_votes);
+    }
+  }
+  if (errno) {
+    perror("Could not sum results");
+    exit(1);
+  }
+
+  write_results_to_dir(path, sum_votes);
+  rewinddir(dir);
 }
 
 void run_leaf_node(char* path) {
@@ -132,26 +206,12 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  /* if (is_leaf_node(dir)) { */
-  /*   run_leaf_node(path); */
-  /* } else { */
-  /*   aggregate_sub_dirs(path, dir); */
-  /*   aggregate_cur_dir(path, dir); */
-  /* } */
-
-
-  struct votes* head = NULL;
-
-  char str[50] = "    abc:3,   def:5,                      abc:4";
-  head = add_votes_from_string(str, head);
-
-  printf("head=<%s,%d>\n", head->candidate, head->votes);
-  printf("head->next=<%s,%d>\n", head->next->candidate, head->next->votes);
-
-  char buf[1024] = {'\0'};
-  to_string(buf, head);
-  printf("to_string=%s\n", buf);
-  free_votes(head);
+  if (is_leaf_node(dir)) {
+    run_leaf_node(path);
+  } else {
+    aggregate_sub_dirs(path, dir);
+    aggregate_cur_dir(path, dir);
+  }
 
   return 0;
 }
