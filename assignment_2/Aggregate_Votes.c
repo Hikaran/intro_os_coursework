@@ -16,6 +16,20 @@
 
 #define MAX_STRING_LEN 1024
 
+void silence_output() {
+  int fd = open("/dev/null", O_WRONLY);
+  if (dup2(fd, 1) < 0) {
+    // error handling
+    perror("Could not redirect stdout");
+    exit(1);
+  }
+  if (dup2(fd, 2) < 0) {
+    // error handling
+    perror("Could not redirect stderr");
+    exit(1);
+  }
+}
+
 /**
  * Return if dir is a leaf node.
  * A dir is a leaf node if it has no subdirs and contains a votes.txt file.
@@ -97,6 +111,7 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
       // Child
       char newpath[MAX_STRING_LEN];
       sprintf(newpath, "%s/%s", path, entry->d_name);
+      // silence_output();
       execl("./Aggregate_Votes", "Aggregate_Votes", newpath, (char*) NULL);
       perror("Error after exec");
     }
@@ -189,6 +204,7 @@ void aggregate_cur_dir(char* path, DIR* dir) {
 }
 
 void run_leaf_node(char* path) {
+  // silence_output();
   printf("leaf node: %s\n", path);
 }
 
