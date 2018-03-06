@@ -1,3 +1,8 @@
+/*login: swann013, tangx254
+* date: 03/06/18
+* name: Kristopher Swann, Joseph Tang
+* login: swann013, tangx254 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
