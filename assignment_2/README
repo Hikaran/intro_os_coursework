@@ -1,0 +1,59 @@
+/*login: swann013, tangx254
+* date: 03/06/18
+* name: Kristopher Swann, Joseph Tang
+* login: swann013, tangx254 */
+
+# Purpose
+
+The purpose of this program is to create a suite of utilities that can be used
+for counting votes. The votes can be divided up into different regions and
+the votes will be counted up in parallel by different processes.
+
+# Compilation
+
+To compile the program, make sure that you are in this directory and simply run
+`make`.  This will produce 3 binary executables: `Vote_Counter`,
+`Leaf_Counter`, and `Aggregate_Votes`.
+
+# Usage
+
+To run any of the programs simply give them a path to the root directory you
+would like to run them in
+
+`Vote_Counter some/path`
+
+`Aggregate_Votes some/other/path`
+
+`Leaf_Counter yet/another/path`
+
+Note that when you call, you **MUST NOT** have a trailing slash, the following
+**WILL** cause an error!
+
+`Vote_Counter some/path/`
+
+# Overview/Methodology
+
+The key to how the program operates lies in `votes.c` where a linked list
+structure for the vote results and helper functions are defined. Each node
+in the linked list contains a candidate string and a number of votes. There
+are helper functions to parse an input string (E.g. "A:4,B:6") and add the
+votes to the corresponding nodes or create new nodes if they are not present
+in the list. There are also helper functions to convert a linked list to
+a string representation as well as others.
+
+`Vote_Counter` simply runs `Aggregate_Votes` on the given path, parses the
+final result string and appends the winner to the output file.
+
+`Aggregate_Votes` determines if it is being run on a leaf node or not, if it
+is then it execs `Leaf_Counter`. Otherwise it cycles through each subdir
+and recursively execs `Aggregate_Votes` on each subdir. After which it reads
+in all of the result files and adds in each result string to a single linked
+list structure. The final summed linked list is output into a file.
+
+`Leaf_Counter` works by.... TODO
+
+# Contributions
+
+Kris Swann: Aggregate_Votes, Vote_Counter, README
+
+Joseph Tang: Leaf_Counter
