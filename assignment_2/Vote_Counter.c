@@ -59,7 +59,8 @@ int main(int argc, char **argv) {
   } else if (pid == 0) {
     // Child
     execl("./Aggregate_Votes", "Aggregate_Votes", argv[1], (char*) NULL);
-    perror("Error after exec");
+    perror("Exec failure in Vote_Counter");
+    exit(1);
   }
 
   wait_for_all_children();

@@ -110,7 +110,7 @@ void wait_for_all_children() {
       }
     } else {
       if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        perror("Child process exited abnormally");
+        printf("Child process exited abnormally.\n");
         exit(1);
       }
     }

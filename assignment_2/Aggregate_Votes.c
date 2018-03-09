@@ -179,7 +179,7 @@ void aggregate_cur_dir(char* path, DIR* dir) {
 void run_leaf_node(char* path) {
       silence_output();
       execl("./Leaf_Counter", "Leaf_Counter", path, (char*) NULL);
-      perror("Error after exec");
+      perror("Leaf_Counter exec failure");
       exit(1);
 }
 
