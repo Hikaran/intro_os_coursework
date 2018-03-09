@@ -11,7 +11,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "votes.c"
+#include "votes.h"
 #include "util.h"
 
 #define MAX_STRING_LEN 1024
@@ -94,6 +94,7 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
       silence_output();
       execl("./Aggregate_Votes", "Aggregate_Votes", newpath, (char*) NULL);
       perror("Error after exec");
+      exit(1);
     }
   }
   if (errno) {
@@ -128,7 +129,7 @@ void write_results_to_dir(char* path, struct votes *head) {
   FILE *sum_results = fopen(sum_path, "we");
   if (sum_results == NULL) {
     printf("Error opening file %s\n", sum_path);
-    exit(0);
+    exit(1);
   }
 
   // Write results to file
@@ -176,8 +177,10 @@ void aggregate_cur_dir(char* path, DIR* dir) {
 }
 
 void run_leaf_node(char* path) {
-  silence_output();
-  printf("leaf node: %s\n", path);
+      silence_output();
+      execl("./Leaf_Counter", "Leaf_Counter", path, (char*) NULL);
+      perror("Error after exec");
+      exit(1);
 }
 
 int main(int argc, char **argv) {

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "votes.c"
+#include "votes.h"
 #include "util.h"
 
 #define MAX_STRING_LEN 1024
@@ -24,7 +24,7 @@ void append_winner(char* path) {
   FILE *results_file = fopen(output_path, "a+e");
   if (results_file == NULL) {
     printf("Error opening file %s\n", output_path);
-    exit(0);
+    exit(1);
   }
 
   // Get results string
