@@ -91,7 +91,6 @@ void to_string(char *buf, struct votes *head) {
 struct votes* add_votes_from_string(char *str, struct votes *head) {
   // Split string into comma seperated segments
   char ***node_strings = malloc(MAX_STRING_LEN*sizeof(char));
-  /* int num_nodes = makeargv(str, ",", node_strings); */
   int num_nodes = makeargv(trimwhitespace(str), ",", node_strings);
 
   for (int i = 0; i < num_nodes; i++) {
@@ -104,7 +103,7 @@ struct votes* add_votes_from_string(char *str, struct votes *head) {
     // Must have exactly 2 parts
     if (num_items != 2) {
       printf("Formatting Error!\n");
-      exit(1);
+      exit(12);
     }
 
     char *candidate = (*node_split)[0];
@@ -117,8 +116,10 @@ struct votes* add_votes_from_string(char *str, struct votes *head) {
       add_votes(head, candidate, num_votes);
     }
 
+    freemakeargv(*node_split);
     free(node_split);
   }
+  freemakeargv(*node_strings);
   free(node_strings);
   return head;
 }
