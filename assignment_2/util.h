@@ -1,4 +1,9 @@
+#ifndef UTIL_H
+#define UTIL_H
+
+#include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -83,3 +88,5 @@ char *trimwhitespace(char *str) {
 
   return str;
 }
+
+#endif

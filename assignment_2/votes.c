@@ -11,6 +11,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "util.h"
+
 #define MAX_STRING_LEN 1024
 
 /** Singly linked list for counting votes. */
@@ -77,4 +79,43 @@ void to_string(char *buf, struct votes *head) {
     sprintf(buf + strlen(buf), ",%s:%d", head->candidate, head->votes);
   }
   to_string(buf, head->next);
+}
+
+/**
+ * Add votes from string of form "A:7,B:2,C:3"
+ * Return pointer to new head (if changed).
+ */
+struct votes* add_votes_from_string(char *str, struct votes *head) {
+  // Split string into comma seperated segments
+  char ***node_strings = malloc(MAX_STRING_LEN*sizeof(char));
+  /* int num_nodes = makeargv(str, ",", node_strings); */
+  int num_nodes = makeargv(trimwhitespace(str), ",", node_strings);
+
+  for (int i = 0; i < num_nodes; i++) {
+    // Split each comma seperated segment ("A:7") into parts
+    /* char *cur_node_string = (*node_strings)[i]; */
+    char *cur_node_string = trimwhitespace((*node_strings)[i]);
+    char ***node_split = malloc(strlen(cur_node_string)*sizeof(char));
+    int num_items = makeargv(cur_node_string, ":", node_split);
+
+    // Must have exactly 2 parts
+    if (num_items != 2) {
+      printf("Formatting Error!\n");
+      exit(1);
+    }
+
+    char *candidate = (*node_split)[0];
+    int num_votes = atoi((*node_split)[1]);
+
+    // Add votes and update head if needek
+    if (head == NULL) {
+      head = add_votes(head, candidate, num_votes);
+    } else {
+      add_votes(head, candidate, num_votes);
+    }
+
+    free(node_split);
+  }
+  free(node_strings);
+  return head;
 }
