@@ -119,3 +119,14 @@ struct votes* add_votes_from_string(char *str, struct votes *head) {
   free(node_strings);
   return head;
 }
+
+struct votes* get_winner(struct votes *head) {
+  struct votes* leader = head;
+  while (head != NULL) {
+    if (head->votes > leader->votes) {
+      leader = head;
+    }
+    head = head->next;
+  }
+  return leader;
+}

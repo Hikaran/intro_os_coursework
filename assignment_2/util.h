@@ -89,4 +89,32 @@ char *trimwhitespace(char *str) {
   return str;
 }
 
+/** Split str by sep and copy last result into buf. */
+void put_last_seperator(char* buf, char* str, char* sep) {
+    char ***splits = malloc(strlen(str)*sizeof(char));
+    int num_items = makeargv(str, sep, splits);
+    strcpy(buf, (*splits)[num_items-1]);
+    free(splits);
+}
+
+/** Wait for all child proccess to finish running. */
+void wait_for_all_children() {
+  while (1) {
+    errno = 0;  // Reset errno
+    int status;
+    int wait_pid = wait(&status);
+    if (wait_pid == -1) {
+      // No more children can exit loop
+      if (errno == ECHILD) {
+        break;
+      }
+    } else {
+      if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        perror("Child process exited abnormally");
+        exit(1);
+      }
+    }
+  }
+}
+
 #endif
