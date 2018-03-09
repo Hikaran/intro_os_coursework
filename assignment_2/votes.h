@@ -1,3 +1,6 @@
+#ifndef VOTES_H
+#define VOTES_H
+
 #define _BSD_SOURCE
 
 #include <stdio.h>
@@ -107,7 +110,7 @@ struct votes* add_votes_from_string(char *str, struct votes *head) {
     char *candidate = (*node_split)[0];
     int num_votes = atoi((*node_split)[1]);
 
-    // Add votes and update head if needek
+    // Add votes and update head if needed.
     if (head == NULL) {
       head = add_votes(head, candidate, num_votes);
     } else {
@@ -130,3 +133,5 @@ struct votes* get_winner(struct votes *head) {
   }
   return leader;
 }
+
+#endif

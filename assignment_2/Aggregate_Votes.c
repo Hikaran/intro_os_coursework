@@ -16,7 +16,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "votes.c"
+#include "votes.h"
 #include "util.h"
 
 #define MAX_STRING_LEN 1024
@@ -26,12 +26,12 @@ void silence_output() {
   if (dup2(fd, 1) < 0) {
     // error handling
     perror("Could not redirect stdout");
-    exit(1);
+    exit(5);
   }
   if (dup2(fd, 2) < 0) {
     // error handling
     perror("Could not redirect stderr");
-    exit(1);
+    exit(5);
   }
 }
 
@@ -59,7 +59,7 @@ int is_leaf_node(DIR* dir) {
   }
   if (errno) {
     perror("readdir() failed");
-    exit(1);
+    exit(7);
   }
   rewinddir(dir);
 
@@ -77,6 +77,7 @@ int is_leaf_node(DIR* dir) {
 void aggregate_sub_dirs(char* path, DIR* dir) {
   rewinddir(dir);
   struct dirent *entry;
+  int num_sub_dirs = 0;  // Count how many regions were aggregated.
   errno = 0;  // Reset errno
 
   // For each subdir fork, parent continues, child execs on subdir
@@ -91,31 +92,38 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
     int pid = fork();
     if (pid < 0) {
       perror("Error forking");
-      exit(1);
-    } else if (pid == 0) {
-      // Child
+      exit(6);
+    } else if (pid == 0) {  // Child branch
       char newpath[MAX_STRING_LEN];
       sprintf(newpath, "%s/%s", path, entry->d_name);
       silence_output();
       execl("./Aggregate_Votes", "Aggregate_Votes", newpath, (char*) NULL);
       perror("Error after exec");
+      exit(3);
+    } else {  // Parent branch
+      num_sub_dirs++;  // Region successfully forked; increment count.
     }
   }
   if (errno) {
     perror("readdir() failed");
-    exit(1);
+    exit(7);
   }
   rewinddir(dir);
 
   wait_for_all_children();
+
+  if (num_sub_dirs == 0) {
+    printf("Aggregate_Votes called on non-leaf without subdirectories.\n");
+    exit(11);
+  }
 }
 
 /** Read first line of file at path into buf. */
 void read_first_line(char* buf, char* path) {
   FILE *results = fopen(path, "re");
   if (results == NULL) {
-    printf("Error opening file %s\n", path);
-    exit(1);
+    printf("Error opening subregion file %s\n", path);
+    exit(8);
   }
   fgets(buf, MAX_STRING_LEN, results);
   fclose(results);
@@ -132,8 +140,8 @@ void write_results_to_dir(char* path, struct votes *head) {
 
   FILE *sum_results = fopen(sum_path, "we");
   if (sum_results == NULL) {
-    printf("Error opening file %s\n", sum_path);
-    exit(0);
+    printf("Error opening results file %s\n", sum_path);
+    exit(8);
   }
 
   // Write results to file
@@ -173,7 +181,7 @@ void aggregate_cur_dir(char* path, DIR* dir) {
   }
   if (errno) {
     perror("Could not sum results");
-    exit(1);
+    exit(10);
   }
 
   write_results_to_dir(path, sum_votes);
@@ -181,8 +189,10 @@ void aggregate_cur_dir(char* path, DIR* dir) {
 }
 
 void run_leaf_node(char* path) {
-  silence_output();
-  printf("leaf node: %s\n", path);
+      silence_output();
+      execl("./Leaf_Counter", "Leaf_Counter", path, (char*) NULL);
+      perror("Leaf_Counter exec failure");
+      exit(4);
 }
 
 int main(int argc, char **argv) {
@@ -195,8 +205,8 @@ int main(int argc, char **argv) {
   // Make sure path is a valid dir
   DIR* dir = opendir(path);
   if (!dir) {
-    perror("Failed to open initial directory");
-    exit(1);
+    perror("Aggregate_Votes failed to open directory");
+    exit(19);
   }
 
   if (is_leaf_node(dir)) {

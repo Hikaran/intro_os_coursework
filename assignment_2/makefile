@@ -4,13 +4,13 @@ DBFLAGS=-g
 
 make: Leaf_Counter Aggregate_Votes Vote_Counter
 
-Leaf_Counter: Leaf_Counter.c util.h
+Leaf_Counter: Leaf_Counter.c util.h votes.h
 	$(CC) $(CFLAGS) Leaf_Counter.c -o Leaf_Counter
 
-Aggregate_Votes: Aggregate_Votes.c util.h votes.c
+Aggregate_Votes: Aggregate_Votes.c util.h votes.h
 	$(CC) $(CFLAGS) Aggregate_Votes.c -o Aggregate_Votes
 
-Vote_Counter: Vote_Counter.c util.h
+Vote_Counter: Vote_Counter.c util.h votes.h
 	$(CC) $(CFLAGS) Vote_Counter.c -o Vote_Counter
 
 clean:

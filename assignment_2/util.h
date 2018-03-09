@@ -110,8 +110,53 @@ void wait_for_all_children() {
       }
     } else {
       if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        perror("Child process exited abnormally");
-        exit(1);
+        switch (WEXITSTATUS(status)) {
+          case 11:
+            printf("Found non-leaf without subdirectories.\n");
+            break;
+          case 1:
+            printf("Incorrect Aggregate_Votes usage.\n");
+            break;
+          case 2:
+            printf("Incorrect Leaf_Counter usage.\n");
+            break;
+          case 3:
+            printf("Failed to exec Aggregate_Votes.\n");
+            break;
+          case 4:
+            printf("Failed to exec Leaf_Counter.\n");
+            break;
+          case 5:
+            printf("Output redirection failed.\n");
+            break;
+          case 6:
+            printf("Forking error.\n");
+            break;
+          case 7:
+            printf("Unexpected issue with readdir().\n");
+            break;
+          case 8:
+            printf("Aggregate_Votes failed to open a file.\n");
+            break;
+          case 9:
+            printf("Leaf_Counter failed to open a file.\n");
+            break;
+          case 10:
+            printf("Aggregate_Votes could not compile results.\n");
+            break;
+          case 17:
+            printf("Leaf_Counter called on non-leaf.\n");
+            break;
+          case 19:
+            printf("Aggregate_Votes failed to open directory.\n");
+            break;
+          case 20:
+            printf("Leaf_Counter failed to open directory.\n");
+            break;
+          default:
+            printf("Child process exited abnormally.\n");
+        }
+        exit(WEXITSTATUS(status));
       }
     }
   }
