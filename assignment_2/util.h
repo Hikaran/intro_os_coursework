@@ -111,7 +111,8 @@ void wait_for_all_children() {
     } else {
       if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         printf("Child process exited abnormally.\n");
-        exit(1);
+        printf("Exit status = %d\n", WEXITSTATUS(status));
+        exit(WEXITSTATUS(status));
       }
     }
   }

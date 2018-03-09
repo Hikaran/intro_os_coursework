@@ -77,6 +77,7 @@ int is_leaf_node(DIR* dir) {
 void aggregate_sub_dirs(char* path, DIR* dir) {
   rewinddir(dir);
   struct dirent *entry;
+  int num_sub_dirs = 0;  // Count how many regions were aggregated.
   errno = 0;  // Reset errno
 
   // For each subdir fork, parent continues, child execs on subdir
@@ -92,14 +93,16 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
     if (pid < 0) {
       perror("Error forking");
       exit(1);
-    } else if (pid == 0) {
-      // Child
+    } else if (pid == 0) {  // Child branch
+      num_sub_dirs = 0;  // Reset count of subregions.
       char newpath[MAX_STRING_LEN];
       sprintf(newpath, "%s/%s", path, entry->d_name);
       silence_output();
       execl("./Aggregate_Votes", "Aggregate_Votes", newpath, (char*) NULL);
       perror("Error after exec");
       exit(1);
+    } else {  // Parent branch
+      num_sub_dirs++;  // Region successfully forked; increment count.
     }
   }
   if (errno) {
@@ -109,6 +112,11 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
   rewinddir(dir);
 
   wait_for_all_children();
+
+  if (num_sub_dirs == 0) {
+    printf("Nothing to aggregate.\n");
+    exit(11);
+  }
 }
 
 /** Read first line of file at path into buf. */
