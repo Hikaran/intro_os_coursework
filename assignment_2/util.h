@@ -112,7 +112,7 @@ void wait_for_all_children() {
       if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         switch (WEXITSTATUS(status)) {
           case 11:
-            printf("Attempted to aggregate ghost region.\n");
+            printf("Found non-leaf without subdirectories.\n");
             break;
           case 1:
             printf("Incorrect Aggregate_Votes usage.\n");

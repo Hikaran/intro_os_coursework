@@ -94,7 +94,6 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
       perror("Error forking");
       exit(6);
     } else if (pid == 0) {  // Child branch
-      num_sub_dirs = 0;  // Reset count of subregions.
       char newpath[MAX_STRING_LEN];
       sprintf(newpath, "%s/%s", path, entry->d_name);
       silence_output();
@@ -114,7 +113,7 @@ void aggregate_sub_dirs(char* path, DIR* dir) {
   wait_for_all_children();
 
   if (num_sub_dirs == 0) {
-    printf("Nothing to aggregate.\n");
+    printf("Aggregate_Votes called on non-leaf without subdirectories.\n");
     exit(11);
   }
 }
