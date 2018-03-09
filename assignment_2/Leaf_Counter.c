@@ -50,7 +50,7 @@ int is_leaf_node(DIR* dir) {
   // Handles errors with readdir().
   if (errno) {
     perror("Unexpected issue with readdir()");
-    exit(1);
+    exit(7);
   }
 
   return has_votes_file;
@@ -83,7 +83,7 @@ void record_votes(struct votes* results, char* path) {
   if (recording == NULL) {
     perror("Could not create Leaf_Counter output file");
     printf("Encountered error in directory <%s>\n", path);
-    exit(1);
+    exit(9);
   } 
 
   fprintf(recording, "%s\n", record);
@@ -120,7 +120,7 @@ void tally_votes(FILE* votes, char* path) {
 int main(int argc, char **argv) {
   if (argc != 2) {
     printf("Usage: ./Leaf_Counter <path>\n");
-    exit(1);
+    exit(2);
   }
 
   // Make sure path resolves to a valid directory.
@@ -129,13 +129,13 @@ int main(int argc, char **argv) {
   if (!dir) {
     perror("Leaf_Counter failed to open directory");
     printf("Encountered error in directory <%s>\n", path);
-    exit(1);
+    exit(20);
   }
 
   // Make sure directory represents a leaf node.
   if (!is_leaf_node(dir)) {
     printf("Not a leaf node.\n");
-    exit(1);
+    exit(17);
   } 
 
   // Open the file containing the votes and pass it to the counting function.
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
   if (votes == NULL) {
     perror("Could not open votes.txt");
     printf("Encountered error in path <%s>\n", path);
-    exit(1);
+    exit(9);
   } 
 
   tally_votes(votes, path);
