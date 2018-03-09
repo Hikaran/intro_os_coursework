@@ -50,10 +50,16 @@ and recursively execs `Aggregate_Votes` on each subdir. After which it reads
 in all of the result files and adds in each result string to a single linked
 list structure. The final summed linked list is output into a file.
 
-`Leaf_Counter` works by.... TODO
+`Leaf_Counter` looks for a file called votes.txt in the directory it is given
+and counts the number of votes for each candidate found within. Empty lines
+will be skipped as if the associated voter abstained from voting. By extension,
+an empty file is treated as a region where all citizens chose to abstain.
+Votes are tallied using a linked list of vote counters containing one entry per
+candidate. This linked list is then used to generate a one-line output file
+giving the total number of votes recorded for each candidate.
 
 # Contributions
 
 Kris Swann: Aggregate_Votes, Vote_Counter, README
 
-Joseph Tang: Leaf_Counter
+Joseph Tang: Leaf_Counter, README

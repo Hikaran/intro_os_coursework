@@ -150,6 +150,7 @@ int main(int argc, char **argv) {
 
   tally_votes(votes, path);
 
+  // Print the output file name.
   char cur_dir[MAX_STRING_LEN];
   put_last_seperator(cur_dir, path, "/");
   printf("%s/%s.txt\n", path, cur_dir);
