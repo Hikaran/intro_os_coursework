@@ -90,8 +90,6 @@ void find_cycles(char* path, char* output_path) {
       if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
         continue;
       } else {
-        // TODO Delete this print statement; proof-of-concept only.
-        printf("Cycle check found dir |%s| in |%s|\n", entry->d_name, path);
         // Spawn a child process to search subdirectory.
         pid = fork();
         if (pid < 0) {
@@ -115,9 +113,6 @@ void find_cycles(char* path, char* output_path) {
         }
       }
     } else if (entry->d_type == DT_LNK) {
-      // TODO Delete this print statement; proof-of-concept only.
-      printf("Cycle check found link |%s| in |%s|\n", entry->d_name, path);
-
       // Spawn a child process to check the link.
       pid = fork();
       if (pid < 0) {
@@ -126,6 +121,13 @@ void find_cycles(char* path, char* output_path) {
         perror("Fork failed in link testing");
         continue;
       } else if (pid == 0) {
+        // Save original working directory.
+        char home_path[MAX_STRING_LEN];
+        if (!getcwd(home_path, MAX_STRING_LEN)) {
+          perror("Failed to get working directory");
+          exit(0);  // Cycle check failure should not corrupt results.
+        }
+
         // Change working directory to link location.
         if (chdir(path) != 0) {
           perror("Failed to enter link location");
@@ -135,7 +137,7 @@ void find_cycles(char* path, char* output_path) {
         // Retrieve absolute path to link location.
         char source[MAX_STRING_LEN];
         if (!getcwd(source, MAX_STRING_LEN)) {
-          perror("Failed to get working directory");
+          perror("Failed to get link location");
           exit(0);  // Cycle check failure should not corrupt results.
         }
 
@@ -157,12 +159,47 @@ void find_cycles(char* path, char* output_path) {
           exit(0);  // Cycle check failure should not corrupt results.
         }
 
-        // TODO Delete print statements.
-        printf("Source directory |%s|\n", source);
-        printf("Link directory |%s|\n", destination);
+        // Break both paths into directory strings.
+        char** link_source;
+        int source_len = makeargv(source, "/", &link_source);
+        char** link_destination;
+        int destination_len = makeargv(destination, "/", &link_destination);
+        int i = 0;
 
-        // Check if link destination is a parent of link source.
-        
+        // Compare each directory name iteratively.
+        while (i < source_len && i < destination_len) {
+          // Clean up and exit if there is a mismatch.
+          if (strcmp(link_source[i], link_destination[i]) != 0) {
+            freemakeargv(link_source);
+            freemakeargv(link_destination);
+            exit(0);
+          } else {
+            i++;
+          }
+        }
+
+        // Cycle present since one path fully contains the other.
+        // Restore original working directory.
+        if (chdir(home_path) != 0) {
+          perror("Failed to return to original working directory");
+          exit(0);  // Cycle check failure should not corrupt results.
+        }
+
+        // Append cycle notification to file.
+        FILE* recording = fopen(output_path, "a+");
+        fprintf(recording,
+                "There is a cycle from %s to %s.\n",
+                link_source[source_len-1],
+                link_destination[destination_len-1]);
+        if (recording == NULL) {
+          printf("Results file could not be opened in cycle check.");
+          exit(0);
+        }
+
+        fclose(recording);
+
+        freemakeargv(link_source);
+        freemakeargv(link_destination);
 
         exit(0);
       }
