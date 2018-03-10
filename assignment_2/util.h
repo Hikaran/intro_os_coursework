@@ -94,6 +94,7 @@ void put_last_seperator(char* buf, char* str, char* sep) {
     char ***splits = malloc(strlen(str)*sizeof(char));
     int num_items = makeargv(str, sep, splits);
     strcpy(buf, (*splits)[num_items-1]);
+    freemakeargv(*splits);
     free(splits);
 }
 
@@ -143,6 +144,9 @@ void wait_for_all_children() {
             break;
           case 10:
             printf("Aggregate_Votes could not compile results.\n");
+            break;
+          case 12:
+            printf("Formatting error in candidate voting information.\n");
             break;
           case 17:
             printf("Leaf_Counter called on non-leaf.\n");

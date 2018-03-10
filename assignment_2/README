@@ -3,6 +3,9 @@
 * name: Kristopher Swann, Joseph Tang
 * login: swann013, tangx254 */
 
+/* Lecture Section 001 (both) */
+/* Extra credit attempted */
+
 # Purpose
 
 The purpose of this program is to create a suite of utilities that can be used
@@ -58,8 +61,19 @@ Votes are tallied using a linked list of vote counters containing one entry per
 candidate. This linked list is then used to generate a one-line output file
 giving the total number of votes recorded for each candidate.
 
+The extra credit assignment resolved in Vote_Counter by crawling iteratively
+through each directory, starting from the root. For every subdirectory found,
+a process is forked to check the subdirectory. A token is used to keep track of
+which process was the original; all others exit upon reaching the end of the
+function. For every symbolic link found, a process is forked to check if the
+link forms a cycle. To accomplish this, the absolute paths for both the link
+location and the link target are split into strings using "/" as a delimiter.
+The paths are then compared string by string until either a mismatch is found
+or one of the strings ends. In the latter case, a cycle has been detected and a
+message is appended to the main results file.
+
 # Contributions
 
 Kris Swann: Aggregate_Votes, Vote_Counter, README
 
-Joseph Tang: Leaf_Counter, README
+Joseph Tang: Leaf_Counter, extra credit, README

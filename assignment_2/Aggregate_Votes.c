@@ -136,7 +136,6 @@ void write_results_to_dir(char* path, struct votes *head) {
   put_last_seperator(cur_dir, path, "/");
   char sum_path[MAX_STRING_LEN];
   sprintf(sum_path, "%s/%s.txt", path, cur_dir);
-  printf("%s\n", sum_path);
 
   FILE *sum_results = fopen(sum_path, "we");
   if (sum_results == NULL) {
@@ -149,6 +148,9 @@ void write_results_to_dir(char* path, struct votes *head) {
   to_string(sum_str, head);
   fprintf(sum_results, "%s\n", sum_str);
   fclose(sum_results);
+
+  // Print output filename.
+  printf("%s\n", sum_path);
 }
 
 void aggregate_cur_dir(char* path, DIR* dir) {
@@ -185,6 +187,7 @@ void aggregate_cur_dir(char* path, DIR* dir) {
   }
 
   write_results_to_dir(path, sum_votes);
+  free_votes(sum_votes);
   rewinddir(dir);
 }
 
