@@ -140,14 +140,14 @@ void find_cycle(char* path, char* output_path, char* link_name) {
 
   // Append cycle notification to file.
   FILE* recording = fopen(output_path, "a+");
-  fprintf(recording,
-          "There is a cycle from %s to %s.\n",
-          link_source[source_len-1],
-          link_destination[destination_len-1]);
   if (recording == NULL) {
     printf("Results file could not be opened in cycle check.");
     exit(0);
   }
+  fprintf(recording,
+          "There is a cycle from %s to %s.\n",
+          link_source[source_len-1],
+          link_destination[destination_len-1]);
   fclose(recording);
   freemakeargv(link_source);
   freemakeargv(link_destination);
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
     silence_output();
     execl("./Aggregate_Votes", "Aggregate_Votes", path, (char*) NULL);
     perror("Exec failure in Vote_Counter");
-    exit(1);
+    exit(3);
   }
 
   wait_for_all_children();
