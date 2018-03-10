@@ -63,14 +63,106 @@ void append_winner(char* path, char* output_path) {
 }
 
 /**
- * Searches a directory tree for symbolic links that create a cycle.
+ * Tests if a symbolic link forms a cycle. If so, appends a message to
+ * the output file.
+ *
+ * Exits upon completion because the process was created specifically to
+ * check the link.
+ *
+ * The first argument is the path to the directory containing the link.
+ * The second argument is the path to the Vote_Counter output file.
+ * The third argument is the name of a link.
+ */
+void find_cycle(char* path, char* output_path, char* link_name) {
+  // Save original working directory.
+  char home_path[MAX_STRING_LEN];
+  if (!getcwd(home_path, MAX_STRING_LEN)) {
+    perror("Failed to get working directory");
+    exit(0);  // Cycle check failure should not corrupt results.
+  }
+
+  // Change working directory to link location.
+  if (chdir(path) != 0) {
+    perror("Failed to enter link location");
+    exit(0);  // Cycle check failure should not corrupt results.
+  }
+
+  // Retrieve absolute path to link location.
+  char source[MAX_STRING_LEN];
+  if (!getcwd(source, MAX_STRING_LEN)) {
+    perror("Failed to get link location");
+    exit(0);  // Cycle check failure should not corrupt results.
+  }
+
+  // Construct path to link.
+  char link_path[MAX_STRING_LEN];
+  sprintf(link_path, "%s/%s", source, link_name);
+
+  // Change working directory to link destination.
+  // chdir resolves symbolic links.
+  if (chdir(link_path) != 0) {
+    perror("Failed to follow link");
+    exit(0);  // Cycle check failure should not corrupt results.
+  }
+
+  // Retrieve absolute path to link destination.
+  char destination[MAX_STRING_LEN];
+  if (!getcwd(destination, MAX_STRING_LEN)) {
+    perror("Failed to get link destination");
+    exit(0);  // Cycle check failure should not corrupt results.
+  }
+
+  // Break both paths into directory strings.
+  char** link_source;
+  int source_len = makeargv(source, "/", &link_source);
+  char** link_destination;
+  int destination_len = makeargv(destination, "/", &link_destination);
+  int i = 0;
+
+  // Compare each directory name iteratively.
+  while (i < source_len && i < destination_len) {
+    // Clean up and exit if there is a mismatch.
+    if (strcmp(link_source[i], link_destination[i]) != 0) {
+      freemakeargv(link_source);
+      freemakeargv(link_destination);
+      exit(0);
+    } else {
+      i++;
+    }
+  }
+
+  // Cycle present since one path fully contains the other.
+  // Restore original working directory.
+  if (chdir(home_path) != 0) {
+    perror("Failed to return to original working directory");
+    exit(0);  // Cycle check failure should not corrupt results.
+  }
+
+  // Append cycle notification to file.
+  FILE* recording = fopen(output_path, "a+");
+  fprintf(recording,
+          "There is a cycle from %s to %s.\n",
+          link_source[source_len-1],
+          link_destination[destination_len-1]);
+  if (recording == NULL) {
+    printf("Results file could not be opened in cycle check.");
+    exit(0);
+  }
+  fclose(recording);
+  freemakeargv(link_source);
+  freemakeargv(link_destination);
+  exit(0);
+}
+
+/**
+ * Searches a directory tree for symbolic links.
  *
  * Assumes that all symbolic links lead to directories.
  *
- * First argument is the root of the directory tree being searched.
- * Second argument is the path to the output file.
+ * The first argument is the root of the directory tree being searched.
+ * The second argument is the path to the Vote_Counter output file.
  */
-void find_cycles(char* path, char* output_path) {
+void find_links(char* path, char* output_path) {
   // Make sure path leads to a valid directory.
   DIR* dir = opendir(path);
   if (!dir) {
@@ -121,87 +213,7 @@ void find_cycles(char* path, char* output_path) {
         perror("Fork failed in link testing");
         continue;
       } else if (pid == 0) {
-        // Save original working directory.
-        char home_path[MAX_STRING_LEN];
-        if (!getcwd(home_path, MAX_STRING_LEN)) {
-          perror("Failed to get working directory");
-          exit(0);  // Cycle check failure should not corrupt results.
-        }
-
-        // Change working directory to link location.
-        if (chdir(path) != 0) {
-          perror("Failed to enter link location");
-          exit(0);  // Cycle check failure should not corrupt results.
-        }
-
-        // Retrieve absolute path to link location.
-        char source[MAX_STRING_LEN];
-        if (!getcwd(source, MAX_STRING_LEN)) {
-          perror("Failed to get link location");
-          exit(0);  // Cycle check failure should not corrupt results.
-        }
-
-        // Construct path to link.
-        char link_path[MAX_STRING_LEN];
-        sprintf(link_path, "%s/%s", source, entry->d_name);
-
-        // Change working directory to link destination.
-        // chdir resolves symbolic links.
-        if (chdir(link_path) != 0) {
-          perror("Failed to follow link");
-          exit(0);  // Cycle check failure should not corrupt results.
-        }
-
-        // Retrieve absolute path to link destination.
-        char destination[MAX_STRING_LEN];
-        if (!getcwd(destination, MAX_STRING_LEN)) {
-          perror("Failed to get link destination");
-          exit(0);  // Cycle check failure should not corrupt results.
-        }
-
-        // Break both paths into directory strings.
-        char** link_source;
-        int source_len = makeargv(source, "/", &link_source);
-        char** link_destination;
-        int destination_len = makeargv(destination, "/", &link_destination);
-        int i = 0;
-
-        // Compare each directory name iteratively.
-        while (i < source_len && i < destination_len) {
-          // Clean up and exit if there is a mismatch.
-          if (strcmp(link_source[i], link_destination[i]) != 0) {
-            freemakeargv(link_source);
-            freemakeargv(link_destination);
-            exit(0);
-          } else {
-            i++;
-          }
-        }
-
-        // Cycle present since one path fully contains the other.
-        // Restore original working directory.
-        if (chdir(home_path) != 0) {
-          perror("Failed to return to original working directory");
-          exit(0);  // Cycle check failure should not corrupt results.
-        }
-
-        // Append cycle notification to file.
-        FILE* recording = fopen(output_path, "a+");
-        fprintf(recording,
-                "There is a cycle from %s to %s.\n",
-                link_source[source_len-1],
-                link_destination[destination_len-1]);
-        if (recording == NULL) {
-          printf("Results file could not be opened in cycle check.");
-          exit(0);
-        }
-
-        fclose(recording);
-
-        freemakeargv(link_source);
-        freemakeargv(link_destination);
-
-        exit(0);
+        find_cycle(path, output_path, entry->d_name);
       }
     }
   }
@@ -243,7 +255,7 @@ int main(int argc, char **argv) {
   sprintf(output_path, "%s/%s.txt", path, cur_dir);
 
   append_winner(path, output_path);
-  find_cycles(path, output_path);
+  find_links(path, output_path);
 
   // Print output file name.
   printf("%s\n", output_path);

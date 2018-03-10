@@ -63,11 +63,14 @@ giving the total number of votes recorded for each candidate.
 
 The extra credit assignment resolved in Vote_Counter by crawling iteratively
 through each directory, starting from the root. For every subdirectory found,
-a process is forked to check that directory as well. For every symbolic link
-found, a process is forked to check if the link forms a cycle. A message is
-appended to the main results file for each cycle discovered. A token is used
-to keep track of which process was the original; all others exit upon reaching
-the end of the function.
+a process is forked to check the subdirectory. A token is used to keep track of
+which process was the original; all others exit upon reaching the end of the
+function. For every symbolic link found, a process is forked to check if the
+link forms a cycle. To accomplish this, the absolute paths for both the link
+location and the link target are split into strings using "/" as a delimiter.
+The paths are then compared string by string until either a mismatch is found
+or one of the strings ends. In the latter case, a cycle has been detected and a
+message is appended to the main results file.
 
 # Contributions
 
