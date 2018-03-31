@@ -58,6 +58,7 @@ dkms.conf
 Vote_Counter
 Aggregate_Votes
 Leaf_Counter
+test
 
 # Project-specific Files
 **/TestCase01
