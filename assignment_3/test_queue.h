@@ -122,7 +122,8 @@ void test_dequeue_one_val() {
   char val[] = "Just some string value";
   enqueue(&queue, val);
 
-  char* dequeued_val = dequeue(&queue);
+  char dequeued_val[MAX_STRING_LEN];
+  dequeue(&queue, dequeued_val);
 
   assert(strcmp(dequeued_val, val) == 0 &&
       "dequeued_val should match enqueued val");
@@ -134,7 +135,6 @@ void test_dequeue_one_val() {
       "test queue dummy header should not point to anything");
 
   free_queue(&queue);
-  free(dequeued_val);
   printf("OK\n");
 }
 
@@ -144,8 +144,7 @@ void* dequeue_thread_call(void* arg) {
   // Random delay
   sleep(rand() % 3);
 
-  char* dequeued_val = dequeue(queue);
-  free(dequeued_val);  // Must remeber to free the dequeued value
+  dequeue(queue, NULL);
 }
 
 void test_dequeue_threaded() {
