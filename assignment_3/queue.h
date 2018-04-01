@@ -80,8 +80,8 @@ void enqueue(struct queue_t* queue, char* value) {
   pthread_mutex_unlock(&(queue->mutex));
 }
 
-/** Dequeue a node from the front of the queue and return the value */
-char* dequeue(struct queue_t* queue) {
+/** Dequeue a node from the front of the queue and copy value into given arg */
+void dequeue(struct queue_t* queue, char* val) {
   if (queue == NULL) {
     fprintf(stderr, "queue cannot be NULL\n");
     exit(1);
@@ -91,17 +91,21 @@ char* dequeue(struct queue_t* queue) {
   struct queue_node_t* node = queue->root;
   // Early return if nothing to dequeue
   if (node->next == NULL) {
-    return NULL;
+    return;
   }
   // Dequeue the front node
   struct queue_node_t* dequeued_node = node->next;
   node->next = dequeued_node->next;
-  // Free the dequeued node
-  char* dequeued_val = dequeued_node->value;
+
+  // Copy the value of the dequeued node over
+  if (val != NULL) {
+    strcpy(val, dequeued_node->value);
+  }
+
+  free(dequeued_node->value);
   free(dequeued_node);
 
   pthread_mutex_unlock(&(queue->mutex));
-  return dequeued_val;
 }
 
 #endif
