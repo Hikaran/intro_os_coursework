@@ -128,7 +128,6 @@ void test_find_node() {
 void test_create_dir_structure() {
   printf("test_create_dir_structure() ");
 
-
   int max_children = 2;
 
   struct dag_node_t* node_root = init_dag_node("root", max_children);
@@ -179,12 +178,69 @@ void test_create_dir_structure() {
   printf("OK\n");
 }
 
+void test_parse_dag_line() {
+  printf("test_parse_dag_line() ");
+
+  int max_children = 2;
+
+  struct dag_node_t* node_root = init_dag_node("root", max_children);
+  parse_dag_line(node_root, "root:child1:child2", max_children);
+  parse_dag_line(node_root, "child1:grandchild1", max_children);
+  parse_dag_line(node_root, "child2:grandchild2", max_children);
+
+  assert(node_root->num_children == 2);
+  assert(strcmp(node_root->children[0]->name, "child1") == 0);
+  assert(strcmp(node_root->children[1]->name, "child2") == 0);
+  assert(node_root->children[0]->num_children == 1);
+  assert(strcmp(node_root->children[0]->children[0]->name, "grandchild1") == 0);
+  assert(node_root->children[1]->num_children == 1);
+  assert(strcmp(node_root->children[1]->children[0]->name, "grandchild2") == 0);
+
+  free_dag(node_root);
+
+  printf("OK\n");
+}
+
+void test_parse_dag_file() {
+  printf("test_parse_dag_file() ");
+
+  int max_children = 2;
+  struct dag_node_t* root = parse_dag_file("./TestCase01/input.txt", max_children);
+
+  assert(strcmp(root->name, "Who_Won") == 0);
+  assert(root->num_children == 3);
+  struct dag_node_t* region1 = root->children[0];
+  struct dag_node_t* region2 = root->children[1];
+  struct dag_node_t* region3 = root->children[2];
+  assert(region1->num_children == 1);
+  assert(strcmp(region1->name, "Region_1") == 0);
+  assert(region2->num_children == 0);
+  assert(strcmp(region2->name, "Region_2") == 0);
+  assert(region3->num_children == 0);
+  assert(strcmp(region3->name, "Region_3") == 0);
+  struct dag_node_t* county1 = region1->children[0];
+  assert(county1->num_children == 2);
+  assert(strcmp(county1->name, "County_1") == 0);
+  struct dag_node_t* subcounty1 = county1->children[0];
+  struct dag_node_t* subcounty2 = county1->children[1];
+  assert(subcounty1->num_children == 0);
+  assert(strcmp(subcounty1->name, "Sub_County_1") == 0);
+  assert(subcounty2->num_children == 0);
+  assert(strcmp(subcounty2->name, "Sub_County_2") == 0);
+
+  free_dag(root);
+
+  printf("OK\n");
+}
+
 /** Run the tests in this suite. */
 void test_dag_runner() {
   test_init_dag_node();
   test_add_child_node();
   test_find_node();
   test_create_dir_structure();
+  test_parse_dag_line();
+  test_parse_dag_file();
 }
 
 #endif

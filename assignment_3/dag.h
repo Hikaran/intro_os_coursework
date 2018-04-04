@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "makeargv.h"
+#include "util.h"
 
 #define MAX_STR_LEN 1024
 
@@ -93,6 +95,63 @@ struct dag_node_t* find_node(struct dag_node_t* root, char* query_name) {
     }
   }
   return found_node;
+}
+
+void parse_dag_line(struct dag_node_t* root, char* line, int max_children) {
+  char** line_names;
+  int num_args = makeargv(line, ":", &line_names);
+
+  if (num_args < 2) {
+    printf("Cannot parse line for dag config: '%s'\n", line);
+    exit(1);
+  }
+
+  // First listed name is the parent node
+  struct dag_node_t* parent_node = find_node(root, line_names[0]);
+
+  // Add a NEW child node for each child node specified
+  for (int i = 1; i < num_args; i++) {  // Start from 1 intentional
+    char* child_name = line_names[i];
+    struct dag_node_t* new_child = init_dag_node(child_name, max_children);
+    add_child_node(new_child, parent_node);
+  }
+
+  freemakeargv(line_names);
+}
+
+struct dag_node_t* parse_dag_file(char* filename, int max_children) {
+  FILE* file = fopen(filename, "r");
+  if (file == NULL) {
+    perror("Could not open open dag file");
+    exit(1);
+  }
+
+  char line[MAX_STR_LEN];
+
+  // Use the first token of the first line to set of the root node
+  if (!fgets(line, MAX_STR_LEN, file)) {
+    perror("Could not read first line in dag file");
+    exit(1);
+  }
+  char** first_line_parts;
+  makeargv(line, ":", &first_line_parts);
+  char* root_name = first_line_parts[0];
+  struct dag_node_t* root = init_dag_node(root_name, max_children);
+  freemakeargv(first_line_parts);
+
+  rewind(file);  // Re-parse the first line to set up relationships
+
+  // Parse the rest of the file
+  while(fgets(line, MAX_STR_LEN, file)) {
+    // Skip empty lines.
+    trimwhitespace(line);
+    if (isspace(line[0])) {
+        continue;
+    }
+    parse_dag_line(root, line, max_children);
+  }
+
+  return root;
 }
 
 void create_dir_structure(struct dag_node_t* root, char* base_dir) {
