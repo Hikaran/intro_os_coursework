@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <dirent.h>
 #include "dag.h"
 
 #define MAX_STRING_LEN 1024
@@ -124,11 +125,66 @@ void test_find_node() {
   printf("OK\n");
 }
 
+void test_create_dir_structure() {
+  printf("test_create_dir_structure() ");
+
+
+  int max_children = 2;
+
+  struct dag_node_t* node_root = init_dag_node("root", max_children);
+  struct dag_node_t* node_child1 = init_dag_node("child1", max_children);
+  struct dag_node_t* node_child2 = init_dag_node("child2", max_children);
+  add_child_node(node_child1, node_root);
+  add_child_node(node_child2, node_root);
+  struct dag_node_t* node_grandchild1 = init_dag_node("grandchild1", max_children);
+  struct dag_node_t* node_grandchild2 = init_dag_node("grandchild2", max_children);
+  add_child_node(node_grandchild1, node_child1);
+  add_child_node(node_grandchild2, node_child2);
+
+  create_dir_structure(node_root, ".");
+
+  DIR* dir = NULL;
+
+  dir = opendir("./root");
+  assert(dir != NULL &&
+      "root folder should exist");
+  closedir(dir);
+  dir = opendir("./root/child1");
+  assert(dir != NULL &&
+      "root/child1 folder should exist");
+  closedir(dir);
+  dir = opendir("./root/child2");
+  assert(dir != NULL &&
+      "root/child2 folder should exist");
+  closedir(dir);
+  dir = opendir("./root/child3");
+  assert(dir == NULL &&
+      "root/child3 folder should NOT exist");
+  // closedir(dir);  DO NOT CLOSE NULL ptr
+  dir = opendir("./root/child1/grandchild1");
+  assert(dir != NULL &&
+      "root/child1/grandchild1 folder should exist");
+  closedir(dir);
+  dir = opendir("./root/child2/grandchild2");
+  assert(dir != NULL &&
+      "root/child2/grandchild2 folder should exist");
+  closedir(dir);
+
+  free(node_root);
+
+  // USing system because removing files recusively is more work
+  // than I'm willing to do for a test function
+  system("rm -r ./root");
+
+  printf("OK\n");
+}
+
 /** Run the tests in this suite. */
 void test_dag_runner() {
   test_init_dag_node();
   test_add_child_node();
   test_find_node();
+  test_create_dir_structure();
 }
 
 #endif

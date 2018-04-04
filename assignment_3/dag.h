@@ -5,6 +5,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#define MAX_STR_LEN 1024
 
 struct dag_node_t {
   char* name;
@@ -88,6 +93,16 @@ struct dag_node_t* find_node(struct dag_node_t* root, char* query_name) {
     }
   }
   return found_node;
+}
+
+void create_dir_structure(struct dag_node_t* root, char* base_dir) {
+  char dirname[MAX_STR_LEN];
+  sprintf(dirname, "%s/%s", base_dir, root->name);
+  mkdir(dirname, 0777);
+
+  for (int i = 0; i < root->num_children; i++) {
+    create_dir_structure(root->children[i], dirname);
+  }
 }
 
 #endif
