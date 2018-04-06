@@ -113,6 +113,7 @@ void parse_dag_line(struct dag_node_t* root, char* line, int max_children) {
   // Add a NEW child node for each child node specified
   for (int i = 1; i < num_args; i++) {  // Start from 1 intentional
     char* child_name = line_names[i];
+    trimwhitespace(child_name);
     struct dag_node_t* new_child = init_dag_node(child_name, max_children);
     add_child_node(new_child, parent_node);
   }
@@ -137,6 +138,7 @@ struct dag_node_t* parse_dag_file(char* filename, int max_children) {
   char** first_line_parts;
   makeargv(line, ":", &first_line_parts);
   char* root_name = first_line_parts[0];
+  trimwhitespace(root_name);
   struct dag_node_t* root = init_dag_node(root_name, max_children);
   freemakeargv(first_line_parts);
 
@@ -158,7 +160,12 @@ struct dag_node_t* parse_dag_file(char* filename, int max_children) {
 void create_dir_structure(struct dag_node_t* root, char* base_dir) {
   char dirname[MAX_STR_LEN];
   sprintf(dirname, "%s/%s", base_dir, root->name);
-  mkdir(dirname, 0777);
+  if (mkdir(dirname, 0777) && errno != EEXIST) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Could not create dir %s", dirname);
+    perror(error_msg);
+    exit(1);
+  }
 
   for (int i = 0; i < root->num_children; i++) {
     create_dir_structure(root->children[i], dirname);

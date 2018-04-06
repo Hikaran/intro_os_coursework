@@ -108,13 +108,13 @@ void test_find_node() {
   assert(find_node(node_root, name_root) == node_root &&
       "can find root node");
   assert(find_node(node_root, name_child1) == node_child1 &&
-      "can find child node");
+      "can find child1 node");
   assert(find_node(node_root, name_child2) == node_child2 &&
-      "can find child node");
+      "can find child2 node");
   assert(find_node(node_root, name_grandchild1) == node_grandchild1 &&
-      "can find grandchild node");
+      "can find grandchild1 node");
   assert(find_node(node_root, name_grandchild2) == node_grandchild2 &&
-      "can find grandchild node");
+      "can find grandchild2 node");
 
   char failquery[] = "im not a node in the dag";
   assert(find_node(node_root, failquery) == NULL &&
@@ -201,6 +201,22 @@ void test_parse_dag_line() {
   printf("OK\n");
 }
 
+void test_parse_dag_line_existing_node() {
+  printf("test_parse_dag_line_existing_node() ");
+
+  int max_children = 2;
+
+  struct dag_node_t* node_root = init_dag_node("root", max_children);
+  parse_dag_line(node_root, "root:child1", max_children);
+  parse_dag_line(node_root, "root:child2", max_children);
+
+  assert(node_root->num_children == 2);
+  assert(strcmp(node_root->children[0]->name, "child1") == 0);
+  assert(strcmp(node_root->children[1]->name, "child2") == 0);
+
+  printf("OK\n");
+}
+
 void test_parse_dag_file() {
   printf("test_parse_dag_file() ");
 
@@ -240,6 +256,7 @@ void test_dag_runner() {
   test_find_node();
   test_create_dir_structure();
   test_parse_dag_line();
+  test_parse_dag_line_existing_node();
   test_parse_dag_file();
 }
 
