@@ -38,6 +38,7 @@ struct dag_node_t* init_dag_node(char* name, int max_children) {
   // Initialize mutex
   if (pthread_mutex_init(&(node->mutex), NULL)) {
     perror("Could not initialize mutex");
+    exit(1);
   }
   return node;
 }
