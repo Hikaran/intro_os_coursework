@@ -1,6 +1,8 @@
 #ifndef TEST_DAG_H
 #define TEST_DAG_H
 
+#define _XOPEN_SOURCE 500
+
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -174,6 +176,69 @@ void test_create_dir_structure() {
   // USing system because removing files recusively is more work
   // than I'm willing to do for a test function
   system("rm -r ./root");
+
+  printf("OK\n");
+}
+
+void test_create_dir_structure_delte_existing_file() {
+  printf("test_create_dir_structure_delte_existing_file() ");
+
+  // Set up a pre-existing dir that will be removed when dag is created
+  mkdir("root", 0777);
+  mkdir("root/childfolder", 0777);
+  char* init_filename = "root/childfolder/foobar.txt";
+  FILE* file = fopen(init_filename, "w");
+  fclose(file);
+
+  // Check init dir structure set up
+  DIR* dir = NULL;
+  dir = opendir("root");
+  assert(dir != NULL &&
+      "root folder should exist");
+  closedir(dir);
+  dir= opendir("root/childfolder");
+  assert(dir != NULL &&
+      "childfolder folder should exist");
+  closedir(dir);
+  file = fopen(init_filename, "r");
+  assert (file != NULL &&
+      "file1 should exist");
+  fclose(file);
+
+  // Create dag
+  int max_children = 2;
+  struct dag_node_t* node_root = init_dag_node("root", max_children);
+  struct dag_node_t* node_child1 = init_dag_node("child1", max_children);
+  struct dag_node_t* node_child2 = init_dag_node("child2", max_children);
+  add_child_node(node_child1, node_root);
+  add_child_node(node_child2, node_root);
+
+  create_dir_structure(node_root, ".");
+
+  // Check that dir strucure was created
+  dir = opendir("./root");
+  assert(dir != NULL &&
+      "root folder should exist");
+  closedir(dir);
+  dir = opendir("./root/child1");
+  assert(dir != NULL &&
+      "root/child1 folder should exist");
+  closedir(dir);
+  dir = opendir("./root/child2");
+  assert(dir != NULL &&
+      "root/child2 folder should exist");
+  closedir(dir);
+
+  // Chceck that the intal childfolder and file were deleted
+  dir = opendir("./root/childfolder");
+  assert(dir == NULL &&
+      "childfolder should have been deleted");
+  file = fopen(init_filename, "r");
+  assert(file == NULL &&
+      "init_file should have been delted");
+
+  free_dag(node_root);
+  rmrf("root");
 
   printf("OK\n");
 }
