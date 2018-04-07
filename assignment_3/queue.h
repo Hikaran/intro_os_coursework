@@ -31,6 +31,7 @@ void init_queue(struct queue_t* queue) {
   // Initalize mutex
   if (pthread_mutex_init(&(queue->mutex), NULL)) {
     perror("Could not inialize mutex");
+    exit(1);
   }
 }
 
