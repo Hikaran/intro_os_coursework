@@ -20,6 +20,7 @@ void logger_init(struct logger_t* logger, char* logfilename) {
   // Initalize mutex
   if (pthread_mutex_init(&(logger->mutex), NULL)) {
     perror("Could not inialize mutex");
+    exit(1);
   }
 }
 
