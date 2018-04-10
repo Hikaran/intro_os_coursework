@@ -9,7 +9,7 @@
 #include "logger.h"
 
 #define MAX_STRING_LEN 1024
-#define NUM_THREADS 50
+#define NUM_THREADS 100
 
 void test_logger_init_logfilename() {
   printf("test_logger_init_logfilename() ");
