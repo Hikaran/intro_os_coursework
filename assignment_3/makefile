@@ -4,7 +4,7 @@ DBFLAGS=-g
 
 make: test
 
-test: test.c test_*.h
+test: test.c *.h
 	$(CC) $(CFLAGS) test_*.h test.c -o test
 
 clean:

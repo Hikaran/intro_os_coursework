@@ -9,7 +9,7 @@
 #define MAX_STRING_LEN 1024
 
 void test_decrypt_example_from_writeup() {
-  printf("test_example_from_writeup() ");
+  printf("test_decrypt_example_from_writeup() ");
 
   char source[] = "YQCCJ";
   char target[MAX_STRING_LEN];
@@ -60,7 +60,7 @@ void test_decrypt_numbers() {
 }
 
 void test_decrypt_whitespace() {
-  printf("test_decrypt_numbers() ");
+  printf("test_decrypt_whitespace() ");
 
   char source[] = "A B C\nD\nE F";
   char target[MAX_STRING_LEN];
@@ -73,7 +73,7 @@ void test_decrypt_whitespace() {
 }
 
 void test_decrypt_special_chars() {
-  printf("test_decrypt_numbers() ");
+  printf("test_decrypt_special_chars() ");
 
   char source[] = "AB!@#$%^&(*()(|YZ";
   char target[MAX_STRING_LEN];
