@@ -13,7 +13,7 @@
 
 static int rm_helper(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
   if(remove(pathname) < 0) {
-    perror("ERROR: remove for rmfr");
+    perror("ERROR: remove for rmrf");
     exit(1);
   }
   return 0;
