@@ -180,6 +180,11 @@ struct dag_node_t* parse_dag_file(char* filename, int max_children) {
 
   char line[MAX_STR_LEN];
 
+  // TODO Error handling
+  // Two main cases I can think of here:
+  // 1) First line is empty.
+  // 2) All lines are empty.
+
   // Use the first token of the first line to set the root node
   if (!fgets(line, MAX_STR_LEN, file)) {
     perror("Could not read first line in dag file");
