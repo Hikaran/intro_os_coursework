@@ -215,13 +215,6 @@ void create_dir_structure(struct dag_node_t* root, char* base_dir) {
   char dirname[MAX_STR_LEN];
   sprintf(dirname, "%s/%s", base_dir, root->name);
 
-  // If dir already exists, delete it
-  DIR* dir = opendir(dirname);
-  if (dir != NULL) {
-    closedir(dir);
-    rmrf(dirname);
-  }
-
   if (mkdir(dirname, 0777) && errno != EEXIST) {
     char error_msg[MAX_STR_LEN];
     sprintf(error_msg, "Could not create dir %s", dirname);

@@ -19,23 +19,33 @@ struct queue_t {
   pthread_mutex_t mutex;
 };
 
+/**
+ * Initializes a queue of defined type struct queue_t.
+ *
+ * Takes in a pointer to the queue to be initialized.
+ */
 void init_queue(struct queue_t* queue) {
   if (queue == NULL) {
     fprintf(stderr, "queue cannot be NULL\n");
     exit(1);
   }
-  // Set up dummy header node
+  // Set up dummy header node.
   queue->root = (struct queue_node_t*)malloc(sizeof(struct queue_node_t));
   queue->root->value = NULL;
   queue->root->next = NULL;
-  // Initalize mutex
+
+  // Initialize mutex.
   if (pthread_mutex_init(&(queue->mutex), NULL)) {
     perror("Could not inialize mutex");
     exit(1);
   }
 }
 
-/** Free all of the contents of the queue, but not the queue itself */
+/** 
+ * Free all contents of queue of defined type struct queue_t.
+ *
+ * Does not free the queue itself.
+ */
 void free_queue(struct queue_t* queue) {
   if (queue == NULL) {
     return;
@@ -55,7 +65,9 @@ void free_queue(struct queue_t* queue) {
   pthread_mutex_destroy(&(queue->mutex));
 }
 
-/** Enqueue value as a node at the back of the queue, create copy of value */
+/** 
+ * Enqueue value as a node at the end of the queue.
+ */
 void enqueue(struct queue_t* queue, char* value) {
   if (queue == NULL) {
     fprintf(stderr, "queue cannot be NULL\n");
@@ -81,7 +93,10 @@ void enqueue(struct queue_t* queue, char* value) {
   pthread_mutex_unlock(&(queue->mutex));
 }
 
-/** Dequeue a node from the front of the queue and copy value into given arg */
+/**
+ * Dequeue a value from the front of the queue and copy it to the char
+ * array provided as the second parameter.
+ */
 void dequeue(struct queue_t* queue, char* val) {
   if (queue == NULL) {
     fprintf(stderr, "queue cannot be NULL\n");
