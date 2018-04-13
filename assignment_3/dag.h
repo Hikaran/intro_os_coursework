@@ -170,9 +170,10 @@ void parse_dag_line(struct dag_node_t* root, char* line, int max_children) {
   }
 
   // First listed name is the parent node
-  struct dag_node_t* parent_node = find_node(root, line_names[0]);
+  char* parent_name = trimwhitespace(line_names[0]);
+  struct dag_node_t* parent_node = find_node(root, parent_name);
   if (NULL == parent_node) {
-    printf("Could not find parent node '%s' in graph.\n", line_names[0]);
+    printf("Could not find parent node '%s' in graph.\n", parent_name);
     exit(1);
   }
 

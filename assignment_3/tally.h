@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_STRING_LEN 2048
+#define MAX_STR_LEN 2048
 
 struct tally {
-  char name[MAX_STRING_LEN];
+  char name[MAX_STR_LEN];
   int count;
   struct tally* next;
 };

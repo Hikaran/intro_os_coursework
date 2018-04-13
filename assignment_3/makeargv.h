@@ -16,6 +16,7 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
    int numtokens;
    const char *snew;
    char *t;
+   char *saveptr;
 
    if ((s == NULL) || (delimiters == NULL) || (argvp == NULL)) {
       errno = EINVAL;
@@ -27,8 +28,8 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
       return -1;
    strcpy(t,snew);
    numtokens = 0;
-   if (strtok(t, delimiters) != NULL)
-      for (numtokens = 1; strtok(NULL, delimiters) != NULL; numtokens++) ;
+   if (strtok_r(t, delimiters, &saveptr) != NULL)
+      for (numtokens = 1; strtok_r(NULL, delimiters, &saveptr) != NULL; numtokens++) ;
 
    if ((*argvp = malloc((numtokens + 1)*sizeof(char *))) == NULL) {
       error = errno;
@@ -41,9 +42,9 @@ int makeargv(const char *s, const char *delimiters, char ***argvp) {
       free(t);
    else {
       strcpy(t,snew);
-      **argvp = strtok(t,delimiters);
+      **argvp = strtok_r(t,delimiters,&saveptr);
       for (i=1; i<numtokens; i++)
-         *((*argvp) +i) = strtok(NULL,delimiters);
+         *((*argvp) +i) = strtok_r(NULL,delimiters,&saveptr);
    }
    *((*argvp) + numtokens) = NULL;
    return numtokens;

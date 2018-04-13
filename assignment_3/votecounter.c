@@ -113,8 +113,77 @@ void decrypt_file(FILE* source, FILE* target) {
   }
 }
 
+/**
+ * Records new vote totals in file specified by path.
+ *
+ * 1) Reads previous results if file is present.
+ * 2) Combines previous results with new votes.
+ * 3) Writes new results to file.
+ */
 void record_votes(char* path, struct tally* record) {
-  
+  FILE* file = fopen(path, "r");
+  if (file == NULL && errno != ENOENT) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to read votes from %s", path);
+    perror(error_msg);
+    exit(1);
+  }
+
+  struct tally* results = NULL;
+
+  // Read file only if it already existed.
+  if (file != NULL) {
+    char line[MAX_STR_LEN];
+    char** vote_info;
+    while(fgets(line, MAX_STR_LEN, file)) {
+      // Skip empty lines.
+      trimwhitespace(line);
+      if (isspace(line[0])) {
+          continue;
+      }
+
+      if (makeargv(line, ":", &vote_info) != 2) {
+        printf("Formatting error in file %s\n", path);
+        exit(1);
+      }
+
+      //
+      char* candidate = trimwhitespace(vote_info[0]);
+      int quantity = atoi(trimwhitespace(vote_info[1]));
+      if (results == NULL) {
+        results = add_items(results, candidate, quantity);
+      } else {
+        add_items(results, candidate, quantity);
+      }
+
+      freemakeargv(vote_info);
+    }
+    fclose(file);
+  }
+
+  // Combine results into one list.
+  while (record != NULL) {
+    if (results == NULL) {
+      results = add_items(results, record->name, record->count);
+    } else {
+      add_items(results, record->name, record->count);
+    }
+    record = record->next;
+  }
+
+  file = fopen(path, "w");
+  if (file == NULL) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to write votes to %s", path);
+    perror(error_msg);
+    exit(1);
+  }
+
+  while (results != NULL) {
+    fprintf(file, "%s:%d\n", results->name, results->count);
+    results = results->next;
+  }
+  fclose(file);
 }
 
 /**
@@ -182,9 +251,9 @@ void* run_child_thread(void* args) {
     exit(1);
   }
 
-  char line[MAX_STRING_LEN];
+  char line[MAX_STR_LEN];
   struct tally* votes = NULL;
-  while(fgets(line, MAX_STRING_LEN, output_file)) {
+  while(fgets(line, MAX_STR_LEN, output_file)) {
     // Skip empty lines.
     trimwhitespace(line);
     if (isspace(line[0])) {
@@ -195,13 +264,6 @@ void* run_child_thread(void* args) {
     } else {
       add_items(votes, line, 1);
     }
-  }
-
-  struct tally* viewer;
-  viewer = votes;
-  while (viewer != NULL) {
-    printf("%s has %d votes.\n", viewer->name, viewer->count);
-    viewer = viewer->next;
   }
 
   if (fclose(output_file)) {
