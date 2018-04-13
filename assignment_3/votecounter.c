@@ -5,8 +5,6 @@
 
 #define _BSD_SOURCE
 #define NUM_ARGS 3
-#define MAX_STR_LEN 1024
-#define MAX_PATH 4096
 #define INIT_NUM_CHILDREN 2
 
 #include <stdio.h>
@@ -25,6 +23,7 @@
 #include "dag.h"
 #include "rmrf.h"
 #include "queue.h"
+#include "decrypt.h"
 
 struct thread_args {
   char* input_dir_name;
@@ -98,7 +97,7 @@ int queue_files(struct queue_t* queue, struct dag_node_t* root, char* dir_name) 
 }
 
 /**
- * 
+ * Main function for child thread execution.
  *
  */
 void* count_votes(void* args) {
@@ -122,14 +121,35 @@ void* count_votes(void* args) {
   char output_path[MAX_PATH];
   struct dag_node_t* node = find_node(input->root, file_name);
   sprintf(output_path, "%s/%s/%s.txt", input->output_dir_name, node->path, file_name);
-  FILE* output_file = fopen(output_path, "w");
-  if (output_file == NULL) {
-    perror(output_path);
+
+  FILE* input_file = fopen(input_path, "r");
+  if (input_file == NULL) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to open input %s for decryption", file_name);
+    perror(error_msg);
     exit(1);
   }
-  printf("%s\n", output_path);
 
-  // Decrypt file.
+  FILE* output_file = fopen(output_path, "w");
+  if (output_file == NULL) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to open output %s for decryption", file_name);
+    perror(error_msg);
+    exit(1);
+  }
+
+  // Decrypt input file and print result to output file.
+  char input_line[MAX_STR_LEN];
+  char output_line[MAX_STR_LEN];
+  while(fgets(input_line, MAX_STR_LEN, input_file)) {
+    trimwhitespace(input_line);
+    if (isspace(input_line[0])) {
+      continue;
+    }
+    decrypt(input_line, output_line);
+    fprintf(output_file, "%s\n", output_line);
+  }
+  fclose(input_file);
 
   free(file_name);
 }
@@ -152,6 +172,17 @@ int main(int argc, char **argv) {
     rmrf(output_dir_name);
   }
 
+  // Create output directory.
+  if (mkdir(output_dir_name, 0777) && errno != EEXIST) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Could not create dir %s", output_dir_name);
+    perror(error_msg);
+    exit(1);
+  }
+
+  // Build directory structure from graph in output directory.
+  create_dir_structure(root, output_dir_name);
+
   // Initialize dynamic shared queue.
   struct queue_t* file_queue = (struct queue_t*)malloc(sizeof(struct queue_t));
   init_queue(file_queue);
@@ -165,17 +196,6 @@ int main(int argc, char **argv) {
     printf("error:input directory is empty\n");
     exit(1);
   }
-
-  // Create output directory.
-  if (mkdir(output_dir_name, 0777) && errno != EEXIST) {
-    char error_msg[MAX_STR_LEN];
-    sprintf(error_msg, "Could not create dir %s", output_dir_name);
-    perror(error_msg);
-    exit(1);
-  }
-
-  // Build directory structure from graph in output directory.
-  create_dir_structure(root, output_dir_name);
 
   // Initialize threads.
   pthread_t threads[num_threads];
@@ -193,9 +213,6 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < num_threads; i++) {
 		pthread_join(threads[i], NULL);
 	}
-
-  // Check that at least one thread found a valid leaf file.
-  // Basically, check if root of tree contains a votes file. TODO
 
   free(file_queue);
   free_dag(root);

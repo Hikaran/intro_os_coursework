@@ -13,7 +13,7 @@
 #include "makeargv.h"
 #include "util.h"
 
-#define MAX_STR_LEN 1024
+#define MAX_STR_LEN 2048
 #define MAX_PATH 4096
 
 struct dag_node_t {
