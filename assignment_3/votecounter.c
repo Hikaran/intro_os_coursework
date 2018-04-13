@@ -28,6 +28,7 @@
 
 struct thread_args {
   char* input_dir_name;
+  char* output_dir_name;
   struct queue_t* queue;
   struct dag_node_t* root;
 };
@@ -83,6 +84,9 @@ int queue_files(struct queue_t* queue, struct dag_node_t* root, char* dir_name) 
       num_files++;
       break;
     }
+    if (fclose(input_file)) {
+      perror("Failed to close a file");
+    }
   }
 
   if (errno) {
@@ -104,14 +108,28 @@ void* count_votes(void* args) {
   char* file_name = (char*)malloc(MAX_PATH*sizeof(char));
   dequeue(input->queue, file_name);
 
-  char file_path[MAX_PATH];
-  sprintf(file_path, "%s/%s", input->input_dir_name, file_name);
-
   // Log start message. TODO
   char log_message[MAX_PATH];
   pthread_t tid = pthread_self();
   sprintf(log_message, "%s:%lu:start", file_name, tid);
   printf("%s\n", log_message);
+
+  // Construct input file path.
+  char input_path[MAX_PATH];
+  sprintf(input_path, "%s/%s", input->input_dir_name, file_name);
+
+  // Construct output file path.
+  char output_path[MAX_PATH];
+  struct dag_node_t* node = find_node(input->root, file_name);
+  sprintf(output_path, "%s/%s/%s.txt", input->output_dir_name, node->path, file_name);
+  FILE* output_file = fopen(output_path, "w");
+  if (output_file == NULL) {
+    perror(output_path);
+    exit(1);
+  }
+  printf("%s\n", output_path);
+
+  // Decrypt file.
 
   free(file_name);
 }
@@ -165,6 +183,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < num_threads; i++) {
     child_args[i].input_dir_name = input_dir_name;
+    child_args[i].output_dir_name = output_dir_name;
     child_args[i].queue = file_queue;
     child_args[i].root = root;
     pthread_create(&threads[i], NULL, count_votes, &child_args[i]);

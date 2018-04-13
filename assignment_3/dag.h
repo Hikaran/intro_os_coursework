@@ -14,9 +14,11 @@
 #include "util.h"
 
 #define MAX_STR_LEN 1024
+#define MAX_PATH 4096
 
 struct dag_node_t {
   char* name;
+  char* path;
   struct dag_node_t* parent;
   struct dag_node_t** children;
   int num_children;
@@ -28,8 +30,9 @@ struct dag_node_t {
  * Initialize a node in the graph via the following tasks.
  * 1) Allocate memory for node struct.
  * 2) Allocate memory for and save directory name.
- * 3) Allocate memory for pointers to child nodes.
- * 4) Initialize mutex lock.
+ * 3) Allocate memory for path name and save directory name to path.
+ * 4) Allocate memory for pointers to child nodes.
+ * 5) Initialize mutex lock.
  *
  * Returns a reference to the created node.
  */
@@ -42,6 +45,14 @@ struct dag_node_t* init_dag_node(char* name, int max_children) {
     strcpy(node->name, name);
   } else {
     node->name = NULL;
+  }
+
+  // Add directory name to path.
+  node->path = (char*)malloc(MAX_PATH);
+    if (name != NULL) {
+    strcpy(node->path, name);
+  } else {
+    node->path = NULL;
   }
 
   // Initialize array of child references.
@@ -66,6 +77,12 @@ void free_dag(struct dag_node_t* root) {
   if (root->name != NULL) {
     free(root->name);
     root->name == NULL;
+  }
+
+  // Deallocate path field.
+  if (root->path != NULL) {
+    free(root->path);
+    root->path == NULL;
   }
 
   // Recursively deallocate each child node.
@@ -103,6 +120,11 @@ void add_child_node(struct dag_node_t* child, struct dag_node_t* parent) {
   // Add child reference to parent.
   parent->children[parent->num_children] = child;
   parent->num_children++;
+
+  // Add parent path to child path.
+  char new_path[MAX_PATH];
+  sprintf(new_path, "%s/%s", parent->path, child->path);
+  strcpy(child->path, new_path);
 }
 
 /**
