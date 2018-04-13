@@ -430,9 +430,9 @@ int main(int argc, char **argv) {
   }
 
 	// Make main thread wait for each spawned thread.
-	for (int i = 0; i < num_threads; i++) {
+  for (int i = 0; i < num_threads; i++) {
     pthread_join(threads[i], NULL);
-	}
+  }
 
   char root_file[MAX_PATH];
   sprintf(root_file, "%s/%s/%s.txt", output_dir_name, root->name, root->name);
