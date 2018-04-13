@@ -25,12 +25,14 @@
 #include "queue.h"
 #include "decrypt.h"
 #include "tally.h"
+#include "logger.h"
 
 struct thread_args {
   char* input_dir_name;
   char* output_dir_name;
   struct queue_t* queue;
   struct dag_node_t* root;
+  struct logger_t* logger;
 };
 
 /**
@@ -217,7 +219,7 @@ void* run_child_thread(void* args) {
   char log_message[MAX_PATH];
   pthread_t tid = pthread_self();
   sprintf(log_message, "%s:%lu:start", file_name, tid);
-  printf("%s\n", log_message);
+  logger_append(input->logger, log_message);
 
   // Construct input file path.
   char input_path[MAX_PATH];
@@ -298,7 +300,7 @@ void* run_child_thread(void* args) {
 
   // Log finishing message. TODO
   sprintf(log_message, "%s:%lu:end", file_name, tid);
-  printf("%s\n", log_message);
+  logger_append(input->logger, log_message);
 
   free_tally(votes);
   free(file_name);
@@ -347,6 +349,12 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  // Initialize logger.
+  char logger_path[MAX_PATH];
+  sprintf(logger_path, "%s/log.txt", output_dir_name);
+  struct logger_t* logger = malloc(sizeof(struct logger_t));
+  logger_init(logger, logger_path);
+
   // Initialize threads.
   pthread_t threads[num_threads];
   struct thread_args child_args[num_threads];
@@ -356,6 +364,7 @@ int main(int argc, char **argv) {
     child_args[i].output_dir_name = output_dir_name;
     child_args[i].queue = file_queue;
     child_args[i].root = root;
+    child_args[i].logger = logger;
     pthread_create(&threads[i], NULL, run_child_thread, &child_args[i]);
   }
 
@@ -367,4 +376,5 @@ int main(int argc, char **argv) {
   free_queue(file_queue);
   free(file_queue);
   free_dag(root);
+  free(logger);
 }
