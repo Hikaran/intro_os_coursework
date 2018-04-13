@@ -24,6 +24,7 @@
 #include "rmrf.h"
 #include "queue.h"
 #include "decrypt.h"
+#include "tally.h"
 
 struct thread_args {
   char* input_dir_name;
@@ -84,7 +85,7 @@ int queue_files(struct queue_t* queue, struct dag_node_t* root, char* dir_name) 
       break;
     }
     if (fclose(input_file)) {
-      perror("Failed to close a file");
+      perror("Failed to close a file after queueing");
     }
   }
 
@@ -96,18 +97,38 @@ int queue_files(struct queue_t* queue, struct dag_node_t* root, char* dir_name) 
   return num_files;
 }
 
+/*
+ * Call decrypt helper function line by line to translate file.
+ */
+void decrypt_file(FILE* source, FILE* target) {
+  char source_line[MAX_STR_LEN];
+  char target_line[MAX_STR_LEN];
+  while(fgets(source_line, MAX_STR_LEN, source)) {
+    trimwhitespace(source_line);
+    if (isspace(source_line[0])) {
+      continue;
+    }
+    decrypt(source_line, target_line);
+    fprintf(target, "%s\n", target_line);
+  }
+}
+
 /**
  * Main function for child thread execution.
  *
+ * 1) Retrieve file name from queue.
+ * 2) Decrypt input file.
+ * 3) Place decrypted file in output directory.
+ * 4) Aggregate results iteratively until root node.
  */
-void* count_votes(void* args) {
+void* run_child_thread(void* args) {
   struct thread_args* input = (struct thread_args*) args;
 
   // Retrieve file name.
   char* file_name = (char*)malloc(MAX_PATH*sizeof(char));
   dequeue(input->queue, file_name);
 
-  // Log start message. TODO
+  // Log starting message. TODO
   char log_message[MAX_PATH];
   pthread_t tid = pthread_self();
   sprintf(log_message, "%s:%lu:start", file_name, tid);
@@ -122,6 +143,7 @@ void* count_votes(void* args) {
   struct dag_node_t* node = find_node(input->root, file_name);
   sprintf(output_path, "%s/%s/%s.txt", input->output_dir_name, node->path, file_name);
 
+  pthread_mutex_lock(&node->mutex);
   FILE* input_file = fopen(input_path, "r");
   if (input_file == NULL) {
     char error_msg[MAX_STR_LEN];
@@ -138,18 +160,40 @@ void* count_votes(void* args) {
     exit(1);
   }
 
-  // Decrypt input file and print result to output file.
-  char input_line[MAX_STR_LEN];
-  char output_line[MAX_STR_LEN];
-  while(fgets(input_line, MAX_STR_LEN, input_file)) {
-    trimwhitespace(input_line);
-    if (isspace(input_line[0])) {
-      continue;
-    }
-    decrypt(input_line, output_line);
-    fprintf(output_file, "%s\n", output_line);
+  // Run decryption algorithm.
+  decrypt_file(input_file, output_file);
+  if (fclose(input_file)) {
+    perror("Failed to close input file after decryption");
   }
-  fclose(input_file);
+  if (fclose(output_file)) {
+    perror("Failed to close output file after decryption");
+  }
+
+  // Tally votes in leaf node.
+  output_file = fopen(output_path, "r");
+  if (output_file == NULL) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to open output %s for tallying", file_name);
+    perror(error_msg);
+    exit(1);
+  }
+
+  // Tally votes in leaf node somehow.
+
+  pthread_mutex_unlock(&node->mutex);
+
+  // Aggregate results upward.
+  while (node != input->root) {
+    node = node->parent;
+    pthread_mutex_lock(&node->mutex);
+    // Tally votes in intermediate node.
+
+    pthread_mutex_unlock(&node->mutex);
+  }
+
+  // Log finishing message. TODO
+  sprintf(log_message, "%s:%lu:end", file_name, tid);
+  printf("%s\n", log_message);
 
   free(file_name);
 }
@@ -206,7 +250,7 @@ int main(int argc, char **argv) {
     child_args[i].output_dir_name = output_dir_name;
     child_args[i].queue = file_queue;
     child_args[i].root = root;
-    pthread_create(&threads[i], NULL, count_votes, &child_args[i]);
+    pthread_create(&threads[i], NULL, run_child_thread, &child_args[i]);
   }
 
 	// Make main thread wait for each spawned thread.
@@ -214,6 +258,7 @@ int main(int argc, char **argv) {
 		pthread_join(threads[i], NULL);
 	}
 
+  free_queue(file_queue);
   free(file_queue);
   free_dag(root);
 }

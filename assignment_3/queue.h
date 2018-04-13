@@ -44,7 +44,7 @@ void init_queue(struct queue_t* queue) {
 /** 
  * Free all contents of queue of defined type struct queue_t.
  *
- * Does not free the queue itself.
+ * Does not free the memory allocated for queue.
  */
 void free_queue(struct queue_t* queue) {
   if (queue == NULL) {
