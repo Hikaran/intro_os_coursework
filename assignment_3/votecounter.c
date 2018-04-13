@@ -113,6 +113,10 @@ void decrypt_file(FILE* source, FILE* target) {
   }
 }
 
+void record_votes(char* path, struct tally* record) {
+  
+}
+
 /**
  * Main function for child thread execution.
  *
@@ -178,7 +182,31 @@ void* run_child_thread(void* args) {
     exit(1);
   }
 
-  // Tally votes in leaf node somehow.
+  char line[MAX_STRING_LEN];
+  struct tally* votes = NULL;
+  while(fgets(line, MAX_STRING_LEN, output_file)) {
+    // Skip empty lines.
+    trimwhitespace(line);
+    if (isspace(line[0])) {
+        continue;
+    }
+    if (votes == NULL) {
+      votes = add_items(votes, line, 1);
+    } else {
+      add_items(votes, line, 1);
+    }
+  }
+
+  struct tally* viewer;
+  viewer = votes;
+  while (viewer != NULL) {
+    printf("%s has %d votes.\n", viewer->name, viewer->count);
+    viewer = viewer->next;
+  }
+
+  if (fclose(output_file)) {
+    perror("Failed to close output file after tallying");
+  }
 
   pthread_mutex_unlock(&node->mutex);
 
@@ -186,7 +214,10 @@ void* run_child_thread(void* args) {
   while (node != input->root) {
     node = node->parent;
     pthread_mutex_lock(&node->mutex);
+
     // Tally votes in intermediate node.
+    sprintf(output_path, "%s/%s/%s.txt", input->output_dir_name, node->path, node->name);
+    record_votes(output_path, votes);
 
     pthread_mutex_unlock(&node->mutex);
   }
@@ -195,6 +226,7 @@ void* run_child_thread(void* args) {
   sprintf(log_message, "%s:%lu:end", file_name, tid);
   printf("%s\n", log_message);
 
+  free_tally(votes);
   free(file_name);
 }
 
