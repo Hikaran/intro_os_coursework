@@ -215,7 +215,7 @@ void* run_child_thread(void* args) {
   char* file_name = (char*)malloc(MAX_PATH*sizeof(char));
   dequeue(input->queue, file_name);
 
-  // Log starting message. TODO
+  // Log starting message.
   char log_message[MAX_PATH];
   pthread_t tid = pthread_self();
   sprintf(log_message, "%s:%lu:start", file_name, tid);
@@ -298,12 +298,73 @@ void* run_child_thread(void* args) {
     pthread_mutex_unlock(&node->mutex);
   }
 
-  // Log finishing message. TODO
+  free_tally(votes);
+
+  // Log finishing message.
   sprintf(log_message, "%s:%lu:end", file_name, tid);
   logger_append(input->logger, log_message);
 
-  free_tally(votes);
   free(file_name);
+}
+
+/**
+ * Append a message stating which candidate in the provided file has the most votes.
+ */
+void determine_winner(char* path) {
+  FILE* file = fopen(path, "r");
+  if (file == NULL) {
+    perror("Failed to open file when attempting to determine winner");
+    exit(1);
+  }
+
+  char line[MAX_STR_LEN];
+  char leader[MAX_STR_LEN];
+  int high = 0;
+  char** vote_info;
+
+  while(fgets(line, MAX_STR_LEN, file)) {
+    // Skip empty lines.
+    trimwhitespace(line);
+    if (isspace(line[0])) {
+        continue;
+    }
+
+    if (makeargv(line, ":", &vote_info) != 2) {
+      printf("Formatting error in file %s\n", path);
+      exit(1);
+    }
+
+    // Compare number of votes to leading total.
+    int quantity = atoi(trimwhitespace(vote_info[1]));
+    if (quantity > high) {
+      high = quantity;
+      strcpy(leader, trimwhitespace(vote_info[0]));
+    }
+
+    freemakeargv(vote_info);
+  }
+
+  // Reopen file in append mode to transcribe winner.
+  if (fclose(file)) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to close root file after determining winner");
+    perror(error_msg);
+    exit(1);
+  }
+
+  file = fopen(path, "a");
+  if (file == NULL) {
+    perror("Failed to open file to append winner");
+    exit(1);
+  }
+
+  fprintf(file, "WINNER:%s", leader);
+
+  if (fclose(file)) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to close root file after transcribing winner");
+    perror(error_msg);
+  }
 }
 
 int main(int argc, char **argv) {
@@ -370,8 +431,12 @@ int main(int argc, char **argv) {
 
 	// Make main thread wait for each spawned thread.
 	for (int i = 0; i < num_threads; i++) {
-		pthread_join(threads[i], NULL);
+    pthread_join(threads[i], NULL);
 	}
+
+  char root_file[MAX_PATH];
+  sprintf(root_file, "%s/%s/%s.txt", output_dir_name, root->name, root->name);
+  determine_winner(root_file);
 
   free_queue(file_queue);
   free(file_queue);
