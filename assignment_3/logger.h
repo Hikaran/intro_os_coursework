@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_FILE_LENGTH 1024
+#define MAX_FILE_LENGTH 4096
 
 struct logger_t {
   char logfilename[MAX_FILE_LENGTH];

@@ -13,10 +13,12 @@
 #include "makeargv.h"
 #include "util.h"
 
-#define MAX_STR_LEN 1024
+#define MAX_STR_LEN 2048
+#define MAX_PATH 4096
 
 struct dag_node_t {
   char* name;
+  char* path;
   struct dag_node_t* parent;
   struct dag_node_t** children;
   int num_children;
@@ -24,19 +26,41 @@ struct dag_node_t {
   pthread_mutex_t mutex;
 };
 
-/** Init a node, create copy of name, set up array of children, init mutex */
+/** 
+ * Initialize a node in the graph via the following tasks.
+ * 1) Allocate memory for node struct.
+ * 2) Allocate memory for and save directory name.
+ * 3) Allocate memory for path name and save directory name to path.
+ * 4) Allocate memory for pointers to child nodes.
+ * 5) Initialize mutex lock.
+ *
+ * Returns a reference to the created node.
+ */
 struct dag_node_t* init_dag_node(char* name, int max_children) {
   struct dag_node_t* node = (struct dag_node_t*)malloc(sizeof(struct dag_node_t));
+
+  // Save directory name.
   node->name = (char*)malloc(strlen(name));
   if (name != NULL) {
     strcpy(node->name, name);
   } else {
     node->name = NULL;
   }
+
+  // Add directory name to path.
+  node->path = (char*)malloc(MAX_PATH);
+    if (name != NULL) {
+    strcpy(node->path, name);
+  } else {
+    node->path = NULL;
+  }
+
+  // Initialize array of child references.
   node->max_children = max_children;
   node->num_children = 0;
   node->children = (struct dag_node_t**)malloc(
       max_children * sizeof(struct dag_node_t*));
+
   // Initialize mutex
   if (pthread_mutex_init(&(node->mutex), NULL)) {
     perror("Could not initialize mutex");
@@ -45,26 +69,43 @@ struct dag_node_t* init_dag_node(char* name, int max_children) {
   return node;
 }
 
+/**
+ * Deallocate entire graph recursively.
+ */
 void free_dag(struct dag_node_t* root) {
+  // Deallocate name field.
   if (root->name != NULL) {
     free(root->name);
     root->name == NULL;
   }
+
+  // Deallocate path field.
+  if (root->path != NULL) {
+    free(root->path);
+    root->path == NULL;
+  }
+
+  // Recursively deallocate each child node.
   for (int i = 0; i < root->num_children; i++) {
     free_dag(root->children[i]);
   }
+
+  // Deallocate list of child references.
   free(root->children);
   root->children = NULL;
+
+  // Deallocate data struct.
   free(root);
 }
 
-/** Attach a node to a given parent */
+/**
+ * Attach the given child node to the given parent node.
+ */
 void add_child_node(struct dag_node_t* child, struct dag_node_t* parent) {
-  // Modify child
+  // Save parent reference to child.
   child->parent = parent;
 
-
-  // If parent ran out of space, double the space and copy over contents
+  // If parent ran out of space, double the space and copy over contents.
   if (parent->num_children >= parent->max_children) {
     int new_max = 2 * parent->max_children;
     struct dag_node_t** new_arr = (struct dag_node_t**)malloc(
@@ -76,19 +117,30 @@ void add_child_node(struct dag_node_t* child, struct dag_node_t* parent) {
     parent->max_children = new_max;
   }
 
-  // Add new child to parent
+  // Add child reference to parent.
   parent->children[parent->num_children] = child;
   parent->num_children++;
+
+  // Add parent path to child path.
+  char new_path[MAX_PATH];
+  sprintf(new_path, "%s/%s", parent->path, child->path);
+  strcpy(child->path, new_path);
 }
 
-/** Return CHILD node entry with target name or NULL if no match */
+/**
+ * Recursively search for a node by name.
+ *
+ * If found, returns the matching node. Otherwise, returns NULL. 
+ */
 struct dag_node_t* find_node(struct dag_node_t* root, char* query_name) {
   if (root == NULL) {
     return NULL;
   }
+
   if (strcmp(root->name, query_name) == 0) {
     return root;
   }
+
   struct dag_node_t* found_node = NULL;
   for(int i = 0; i < root->num_children; i++) {
     struct dag_node_t* subquery = find_node(root->children[i], query_name);
@@ -100,6 +152,14 @@ struct dag_node_t* find_node(struct dag_node_t* root, char* query_name) {
   return found_node;
 }
 
+/**
+ * Link graph as specified by input line.
+ *
+ * Line format should be 'parent:child1:child2:child3...'
+ *
+ * Assumes that all parent nodes besides the root have appeared as children
+ * in previously parsed lines.
+ */
 void parse_dag_line(struct dag_node_t* root, char* line, int max_children) {
   char** line_names;
   int num_args = makeargv(line, ":", &line_names);
@@ -110,7 +170,12 @@ void parse_dag_line(struct dag_node_t* root, char* line, int max_children) {
   }
 
   // First listed name is the parent node
-  struct dag_node_t* parent_node = find_node(root, line_names[0]);
+  char* parent_name = trimwhitespace(line_names[0]);
+  struct dag_node_t* parent_node = find_node(root, parent_name);
+  if (NULL == parent_node) {
+    printf("Could not find parent node '%s' in graph.\n", parent_name);
+    exit(1);
+  }
 
   // Add a NEW child node for each child node specified
   for (int i = 1; i < num_args; i++) {  // Start from 1 intentional
@@ -123,16 +188,27 @@ void parse_dag_line(struct dag_node_t* root, char* line, int max_children) {
   freemakeargv(line_names);
 }
 
+/**
+ * Generate graph from file.
+ *
+ * Assume that no non-root node appears as a parent before it appears as
+ * a child. 
+ */
 struct dag_node_t* parse_dag_file(char* filename, int max_children) {
   FILE* file = fopen(filename, "r");
   if (file == NULL) {
-    perror("Could not open open dag file");
+    perror("Could not open dag file");
     exit(1);
   }
 
   char line[MAX_STR_LEN];
 
-  // Use the first token of the first line to set of the root node
+  // TODO Error handling
+  // Two main cases I can think of here:
+  // 1) First line is empty.
+  // 2) All lines are empty.
+
+  // Use the first token of the first line to set the root node
   if (!fgets(line, MAX_STR_LEN, file)) {
     perror("Could not read first line in dag file");
     exit(1);
@@ -159,16 +235,13 @@ struct dag_node_t* parse_dag_file(char* filename, int max_children) {
   return root;
 }
 
+/**
+ * Create the directory structure with the specified root node at the
+ * specified path location.
+ */
 void create_dir_structure(struct dag_node_t* root, char* base_dir) {
   char dirname[MAX_STR_LEN];
   sprintf(dirname, "%s/%s", base_dir, root->name);
-
-  // If dir already exists, delete it
-  DIR* dir = opendir(dirname);
-  if (dir != NULL) {
-    closedir(dir);
-    rmrf(dirname);
-  }
 
   if (mkdir(dirname, 0777) && errno != EEXIST) {
     char error_msg[MAX_STR_LEN];
