@@ -147,7 +147,7 @@ void record_votes(char* path, struct tally* record) {
         exit(1);
       }
 
-      //
+      // Add data to linked list.
       char* candidate = trimwhitespace(vote_info[0]);
       int quantity = atoi(trimwhitespace(vote_info[1]));
       if (results == NULL) {
@@ -158,7 +158,13 @@ void record_votes(char* path, struct tally* record) {
 
       freemakeargv(vote_info);
     }
-    fclose(file);
+
+    if (fclose(file)) {
+      char error_msg[MAX_STR_LEN];
+      sprintf(error_msg, "Failed to close %s after reading old results", path);
+      perror(error_msg);
+      exit(1);
+    }
   }
 
   // Combine results into one list.
@@ -174,7 +180,7 @@ void record_votes(char* path, struct tally* record) {
   file = fopen(path, "w");
   if (file == NULL) {
     char error_msg[MAX_STR_LEN];
-    sprintf(error_msg, "Failed to write votes to %s", path);
+    sprintf(error_msg, "Failed to record votes to %s", path);
     perror(error_msg);
     exit(1);
   }
@@ -183,7 +189,13 @@ void record_votes(char* path, struct tally* record) {
     fprintf(file, "%s:%d\n", results->name, results->count);
     results = results->next;
   }
-  fclose(file);
+
+  if (fclose(file)) {
+    char error_msg[MAX_STR_LEN];
+    sprintf(error_msg, "Failed to close %s after recording new totals", path);
+    perror(error_msg);
+    exit(1);
+  }
 }
 
 /**
