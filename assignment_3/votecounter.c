@@ -1,7 +1,8 @@
 /*login: swann013, tangx254
 * date: 04/11/18
 * name: Kristopher Swann, Joseph Tang
-* login: swann013, tangx254 */
+* login: swann013, tangx254
+* Extra credi: No */
 
 #define _BSD_SOURCE
 #define NUM_ARGS 3
