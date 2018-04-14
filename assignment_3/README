@@ -28,16 +28,16 @@ To run the tests:
 # What it does
 
 The program works by having a main thread which creates the dag from <DAG.txt>,
-initalizes the output dir to correspond to a file tree structure matching the
-dag, initalizes the logger, and initalizes the queue (by reading in the
+initializes the output dir to correspond to a file tree structure matching the
+dag, initializes the logger, and initializes the queue (by reading in the
 contents of the input dir), creates a child thread for each element (leaf node)
 in the queue, waits for all child threads to complete, declares winner and
 exits.
 
 Each child thread is given an item off of the queue, it logs it's start time,
-reads and declares the corresponding file for the leaf node in the input dir,
+reads and decrypts the corresponding file for the leaf node in the input dir,
 stores the decrypted file in the correct place along the dag, and then
-propogating the votes upwards in the file tree, until it reaches the root. At
+propagates the votes upwards in the file tree, until it reaches the root. At
 each node in the file tree, there is an entry containing the accumulated
 votes of all the child nodes of that node. After completing all of this, an
 "ending" message is logged and the child thread exits.
