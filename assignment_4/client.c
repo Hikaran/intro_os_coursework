@@ -13,12 +13,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <libgen.h>
 #include "msg.h"
 #include "util.h"
 
 #define NUM_ARGS_CLIENT 3
 #define MSG_SIZE 256
 #define MAX_LINE_LEN 4096
+#define MAX_PATH_LEN 4096
 
 int main(int argc, char** argv) {
 
@@ -28,9 +30,18 @@ int main(int argc, char** argv) {
         NUM_ARGS_CLIENT, argc - 1);
     exit(1);
   }
-  char* reqfile = argv[1];
   char* server_ip = argv[2];
   int portnum = atoi(argv[3]);
+
+  // Parse the correct basedir and filename from the given arg
+  char reqfilepath[MAX_PATH_LEN];
+  realpath(argv[1], reqfilepath);  // Resolve file to absolute path
+
+  // Extract the dir of the file (creat copy since reqfilepath_copy will
+  // be modified by dirname)
+  char reqfilepath_copy[MAX_PATH_LEN];
+  strcpy(reqfilepath_copy, reqfilepath);
+  char* reqdir = dirname(reqfilepath_copy);
 
   // Create a TCP socket.
   int sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -45,7 +56,7 @@ int main(int argc, char** argv) {
   if (connect(sock, (struct sockaddr *) &address, sizeof(address)) == 0) {
 
     // Open the file.
-    FILE* file = fopen(reqfile, "r");
+    FILE* file = fopen(reqfilepath, "r");
     if (file == NULL) {
       perror("Could not open file");
       exit(1);
@@ -58,7 +69,7 @@ int main(int argc, char** argv) {
       // Create the request from the line
       char* cleanline = trimwhitespace(line);
       struct request_msg req;
-      if (parse_req_file_line(cleanline, &req) == 0) {
+      if (parse_req_file_line(cleanline, &req, reqdir) == 0) {
         fprintf(stderr, "Could not parse line from file\n");
         exit(1);
       }

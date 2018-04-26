@@ -16,6 +16,7 @@
 #define REGION_NAME_LEN 15
 #define MSG_SIZE 256
 #define MAX_LINE_LEN 4096
+#define MAX_PATH_LEN 4096
 
 struct request_msg {
   // Plus one for string terminator
@@ -104,9 +105,13 @@ int parse_resp_msg_str(char* msg_str, struct response_msg* msg) {
 
 
 /** Populate a request msg from the given line from the request file.
+ *
+ *  base_dir is the directory to look for any files in (for Add_Votes
+ *  and Remove_Votes) DOES NOT CONTAIN TRAILING '/'
+ *
  *  Return 0 if error, 1 if okay.
  */
-int parse_req_file_line(char* line, struct request_msg* msg) {
+int parse_req_file_line(char* line, struct request_msg* msg, char* base_dir) {
   char** words;
   int num_words = makeargv(line, " ", &words);
   if (num_words < 1) {
@@ -136,8 +141,11 @@ int parse_req_file_line(char* line, struct request_msg* msg) {
     if (num_words != 3) {
       fprintf(stderr, "Incorrect number of params in request file line, line=%s\n", line);
     } else {
+      char filepath[MAX_PATH_LEN];
+      sprintf(filepath, "%s/%s", base_dir, words[2]);
       char data[MAX_LINE_LEN] = {'\0'};  // Make sure to init to empty str
-      struct votes* results = votes_from_file(words[2]);
+
+      struct votes* results = votes_from_file(filepath);
       votes_to_string(data, results);
       set_req_msg(msg, "AV", words[1], data);
       free_votes(results);
@@ -146,8 +154,10 @@ int parse_req_file_line(char* line, struct request_msg* msg) {
     if (num_words != 3) {
       fprintf(stderr, "Incorrect number of params in request file line, line=%s\n", line);
     } else {
+      char filepath[MAX_PATH_LEN];
+      sprintf(filepath, "%s/%s", base_dir, words[2]);
       char data[MAX_LINE_LEN] = {'\0'};  // Make sure to init to empty str
-      struct votes* results = votes_from_file(words[2]);
+      struct votes* results = votes_from_file(filepath);
       votes_to_string(data, results);
       set_req_msg(msg, "RV", words[1], data);
       free_votes(results);
