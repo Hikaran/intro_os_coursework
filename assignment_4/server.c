@@ -26,6 +26,7 @@ struct conn_args {
   int client_sock;
   struct sockaddr_in client_addr;
   pthread_mutex_t* log_mutex;
+  struct dag_t* dag;
 };
 
 /** Handle the client connected to the server.
@@ -37,6 +38,7 @@ void* handle_connection(void* arg) {
   int client_sock = args->client_sock;
   struct sockaddr_in* client_addr = &(args->client_addr);
   pthread_mutex_t* log_mutex = args->log_mutex;
+  struct dag_t* dag = args->dag;
 
 
   // Save client ip addr to string for easy reuse
@@ -67,7 +69,7 @@ void* handle_connection(void* arg) {
 
     // Handle request and form the response
     struct response_msg resp;
-    handle_request(&req, &resp);
+    handle_request(dag, &req, &resp);
 
     // Convert response to string message
     char resp_str[MSG_SIZE];
@@ -103,7 +105,7 @@ int main(int argc, char** argv) {
         NUM_ARGS_SERVER, argc - 1);
     exit(1);
   }
-  char* dagfile = argv[1];
+  char* dagfilepath = argv[1];
   int portnum = atoi(argv[2]);
 
   // Create a log mutex to synchronise outputs
@@ -112,6 +114,10 @@ int main(int argc, char** argv) {
     perror("Could not inialize mutex");
     exit(1);
   }
+
+  // Create and init dag
+  struct dag_t dag;
+  init_dag(&dag, dagfilepath);
 
   // Create a TCP socket.
   int sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -135,6 +141,7 @@ int main(int argc, char** argv) {
     // Accept an incoming connection
     struct conn_args* thread_args = malloc(sizeof(struct conn_args));
     thread_args->log_mutex = &log_mutex;
+    thread_args->dag = &dag;
     socklen_t size = sizeof(struct sockaddr_in);
     thread_args->client_sock = accept(
         sock, (struct sockaddr *)&(thread_args->client_addr), &size);
