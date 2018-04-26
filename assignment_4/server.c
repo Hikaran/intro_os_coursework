@@ -19,6 +19,65 @@
 #define NUM_ARGS_SERVER 2
 #define MAX_CONNECTIONS 100
 #define MSG_SIZE 256
+#define MAX_IP_ADDR_LEN 500
+
+struct conn_args {
+  int client_sock;
+  struct sockaddr_in client_addr;
+};
+
+/** Handle the client connected to the server.
+ *  The arg is a file descriptor (int) of the connected client.
+ *  MUST close connection when done.
+ */
+void* handle_connection(void* arg) {
+  struct conn_args* args = (struct conn_args*)arg;
+  int client_sock = args->client_sock;
+  struct sockaddr_in* client_addr = &(args->client_addr);
+  
+  // Save client ip addr to string for easy reuse
+  char client_ip_addr[MAX_IP_ADDR_LEN];
+  sprintf(client_ip_addr, "%s:%d", 
+      inet_ntoa(client_addr->sin_addr), client_addr->sin_port);
+
+  printf("Connection initiated from client at %s\n", client_ip_addr);
+
+  // Recive request
+  char req_str[MSG_SIZE];
+  int nbytes;
+  while (nbytes = recv(client_sock, (void*)&req_str, MSG_SIZE, 0) > 0) {
+
+    // TODO: Remove
+    sleep(1);
+
+    printf("RECV: |%s|\n", req_str);
+
+    // Convert request string to request struct
+    struct request_msg req;
+    parse_req_msg_str(req_str, &req);
+
+    // Handle request and form the response
+    struct response_msg resp;
+    handle_request(&req, &resp);
+
+    // Convert response to string message
+    char resp_str[MSG_SIZE];
+    resp_to_str(&resp, resp_str);
+
+    // Then send the response string to client
+    if (send(client_sock, (void*)resp_str, MSG_SIZE, 0) != MSG_SIZE) {
+      fprintf(stderr, "Did not send full msg\n");
+      exit(1);
+    }
+    printf("SENT: |%s|\n", resp_str);
+  }
+
+  // Close connection
+  close(client_sock);
+
+  // Free argument
+  free(args);
+}
 
 int main(int argc, char** argv) {
 
@@ -51,44 +110,23 @@ int main(int argc, char** argv) {
   // Server runs infinitely
   while (1) {
     // Accept an incoming connection
-    struct sockaddr_in clientAddress;
+    struct conn_args* thread_args = malloc(sizeof(struct conn_args));
     socklen_t size = sizeof(struct sockaddr_in);
-    int newsock = accept(sock, (struct sockaddr *)&clientAddress, &size);
-    if (newsock < 0) {
+    thread_args->client_sock = accept(
+        sock, (struct sockaddr *)&(thread_args->client_addr), &size);
+    printf("Accepted\n");
+    if (thread_args->client_sock < 0) {
       perror("Error accepting connection");
       exit(1);
-    }
-    printf("Connection initiated from client at %s:%d\n",
-        inet_ntoa(clientAddress.sin_addr), clientAddress.sin_port);
-
-    // Recive request
-    char req_str[MSG_SIZE];
-    int nbytes;
-    while (nbytes = recv(newsock, (void*)&req_str, MSG_SIZE, 0) > 0) {
-      printf("RECV: |%s|\n", req_str);
-
-      // Convert request string to request struct
-      struct request_msg req;
-      parse_req_msg_str(req_str, &req);
-
-      // Handle request and form the response
-      struct response_msg resp;
-      handle_request(&req, &resp);
-
-      // Convert response to string message
-      char resp_str[MSG_SIZE];
-      resp_to_str(&resp, resp_str);
-
-      // Then send the response string to client
-      if (send(newsock, (void*)resp_str, MSG_SIZE, 0) != MSG_SIZE) {
-        fprintf(stderr, "Did not send full msg\n");
-        exit(1);
+    } else {
+      pthread_t conn_thread;
+      if (pthread_create(&conn_thread, NULL, handle_connection, (void*)thread_args) != 0) {
+        perror("Could not create thread");
       }
-      printf("SENT: |%s|\n", resp_str);
+      if (pthread_detach(conn_thread) != 0) {
+        perror("Could not detach thread");
+      }
     }
-
-    // Close the connection.
-    close(newsock);
   }
 
   // Close the server socket.
