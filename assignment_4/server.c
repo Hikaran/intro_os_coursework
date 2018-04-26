@@ -55,9 +55,6 @@ void* handle_connection(void* arg) {
   int nbytes;
   while (nbytes = recv(client_sock, (void*)&req_str, MSG_SIZE, 0) > 0) {
 
-    // TODO: Remove
-    sleep(1);
-
     // Convert request string to request struct
     struct request_msg req;
     parse_req_msg_str(req_str, &req);
