@@ -13,6 +13,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include "msg.h"
+#include "dag.h"
 
 #define NUM_ARGS_SERVER 2
 #define MAX_CONNECTIONS 100
@@ -72,12 +74,47 @@ int main(int argc, char** argv) {
       int msg_size = atoi(size_str);
 
       // Recive actual message
-      char* msg = (char*)malloc(msg_size * sizeof(char));
-      recv(newsock, (void*)msg, msg_size, 0);
+      char* msg_str = (char*)malloc(msg_size * sizeof(char));
+      recv(newsock, (void*)msg_str, msg_size, 0);
+      printf("RECV: |%s|\n", msg_str);
 
-      printf("%d. %s", linenum, msg);
+      // Convert message to request
+      struct request_msg req;
+      req.code = NULL;
+      req.region_name = NULL;
+      req.data = NULL;
+      parse_request_msg_string(msg_str, &req);
 
-      free(msg);
+      // Handle request and form the response
+      struct response_msg resp;
+      resp.code = NULL;
+      resp.data = NULL;
+      handle_request(&req, &resp);
+
+      // Convert response to string message
+      char* response_str = response_to_string(&resp);
+      if (response_str == NULL) {
+        fprintf(stderr, "Could not convert response to string\n");
+        exit(1);
+      }
+
+      // First send mesage of how long response is to client
+      char size_str[10];
+      sprintf(size_str, "%d", strlen(response_str));
+      if (send(newsock, (void*)size_str, 10, 0) != 10) {
+        fprintf(stderr, "Did not send full msg\n");
+        exit(1);
+      }
+
+      // Then send actual request
+      if (send(newsock, (void*)response_str, strlen(response_str), 0) !=
+          strlen(response_str)) {
+        fprintf(stderr, "Did not send full msg\n");
+        exit(1);
+      }
+      printf("SENT: |%s|\n", response_str);
+
+      free(msg_str);
       linenum++;
     }
 

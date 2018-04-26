@@ -82,6 +82,25 @@ int main(int argc, char** argv) {
       }
 
       printf("SENT: |%s|\n", request_str);
+
+
+      // Recive size msg
+      char resp_size_str[10] = {'\0'};
+      recv(sock, (void*)&resp_size_str, 10, 0);
+      int resp_size = atoi(resp_size_str);
+
+      // Recive actual message
+      char* resp_str = (char*)malloc(resp_size * sizeof(char));
+      recv(sock, (void*)resp_str, resp_size, 0);
+
+      printf("RECV: |%s|\n", resp_str);
+
+      // Convert message to request
+      struct response_msg resp;
+      resp.code = NULL;
+      resp.data = NULL;
+      parse_response_msg_string(resp_str, &resp);
+
       free_request_msg_fields(&request);
       free(request_str);
     }

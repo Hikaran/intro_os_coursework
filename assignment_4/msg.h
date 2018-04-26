@@ -86,7 +86,7 @@ int init_response_msg(struct response_msg* msg, char* code, char* data) {
     return 0;
   }
   msg->code = (char*)malloc((CODE_LEN + 1) * sizeof(char));
-  sprintf(msg->code, "%s", msg);
+  sprintf(msg->code, "%s", code);
   if (data == NULL) {
     msg->data = (char*)malloc(1 * sizeof(char));
     sprintf(msg->data, "%s", "");
@@ -192,14 +192,17 @@ char* response_to_string(const struct response_msg* msg) {
 int parse_request_msg_string(char* msg_str, struct request_msg* msg) {
   char** segments;
   int num_segments = makeargv(msg_str, ";", &segments);
-  if (num_segments != 3) {
-    fprintf(stderr, "Incorrect number of segments in request str, str=%s\n", msg_str);
+  if (num_segments != 2 && num_segments != 3) {
+    fprintf(stderr, "Incorrect number of segments in request str, n=%d str=%s\n", num_segments, msg_str);
     freemakeargv(segments);
     return 0;
   }
   char* code = trimwhitespace(segments[0]);
   char* region_name = trimwhitespace(segments[1]);
-  char* data = trimwhitespace(segments[3]);
+  char* data = "";
+  if (num_segments == 3) {
+    data = trimwhitespace(segments[2]);
+  }
   free_request_msg_fields(msg);
   init_request_msg(msg, code, region_name, data);
   if (!valid_request_msg(msg)) {
@@ -214,16 +217,19 @@ int parse_request_msg_string(char* msg_str, struct request_msg* msg) {
  *  on heap.
  *  Returns 0 if error, 1 if okay.
  * */
-int parse_respose_msg_string(char* msg_str, struct response_msg* msg) {
+int parse_response_msg_string(char* msg_str, struct response_msg* msg) {
   char** segments;
   int num_segments = makeargv(msg_str, ";", &segments);
-  if (num_segments != 2) {
-    fprintf(stderr, "Incorrect number of segments in request str, str=%s\n", msg_str);
+  if (num_segments != 2 && num_segments != 1) {
+    fprintf(stderr, "Incorrect number of segments in response str, n=%d str=%s\n", num_segments, msg_str);
     freemakeargv(segments);
     return 0;
   }
   char* code = trimwhitespace(segments[0]);
-  char* data = trimwhitespace(segments[3]);
+  char* data = "";
+  if (num_segments == 2) {
+    data = trimwhitespace(segments[1]);
+  }
   free_response_msg_fields(msg);
   init_response_msg(msg, code, data);
   if (!valid_response_msg(msg)) {
