@@ -20,10 +20,12 @@
 #define MAX_CONNECTIONS 100
 #define MSG_SIZE 256
 #define MAX_IP_ADDR_LEN 500
+#define MAX_LOG_MSG_LEN 2048
 
 struct conn_args {
   int client_sock;
   struct sockaddr_in client_addr;
+  pthread_mutex_t* log_mutex;
 };
 
 /** Handle the client connected to the server.
@@ -34,13 +36,17 @@ void* handle_connection(void* arg) {
   struct conn_args* args = (struct conn_args*)arg;
   int client_sock = args->client_sock;
   struct sockaddr_in* client_addr = &(args->client_addr);
-  
+  pthread_mutex_t* log_mutex = args->log_mutex;
+
+
   // Save client ip addr to string for easy reuse
   char client_ip_addr[MAX_IP_ADDR_LEN];
-  sprintf(client_ip_addr, "%s:%d", 
+  sprintf(client_ip_addr, "%s:%d",
       inet_ntoa(client_addr->sin_addr), client_addr->sin_port);
 
+  pthread_mutex_lock(log_mutex);
   printf("Connection initiated from client at %s\n", client_ip_addr);
+  pthread_mutex_unlock(log_mutex);
 
   // Recive request
   char req_str[MSG_SIZE];
@@ -50,11 +56,14 @@ void* handle_connection(void* arg) {
     // TODO: Remove
     sleep(1);
 
-    printf("RECV: |%s|\n", req_str);
-
     // Convert request string to request struct
     struct request_msg req;
     parse_req_msg_str(req_str, &req);
+
+    pthread_mutex_lock(log_mutex);
+    printf("Request received from client at %s, %s, %s\n",
+        client_ip_addr, req.code, req.data);
+    pthread_mutex_unlock(log_mutex);
 
     // Handle request and form the response
     struct response_msg resp;
@@ -65,15 +74,22 @@ void* handle_connection(void* arg) {
     resp_to_str(&resp, resp_str);
 
     // Then send the response string to client
+    pthread_mutex_lock(log_mutex);
+    printf("Sending response to client at %s, %s %s\n",
+        client_ip_addr, resp.code, resp.data);
+    pthread_mutex_unlock(log_mutex);
     if (send(client_sock, (void*)resp_str, MSG_SIZE, 0) != MSG_SIZE) {
       fprintf(stderr, "Did not send full msg\n");
       exit(1);
     }
-    printf("SENT: |%s|\n", resp_str);
   }
 
   // Close connection
   close(client_sock);
+
+  pthread_mutex_lock(log_mutex);
+  printf("Closed connection with client at %s\n", client_ip_addr);
+  pthread_mutex_unlock(log_mutex);
 
   // Free argument
   free(args);
@@ -89,6 +105,13 @@ int main(int argc, char** argv) {
   }
   char* dagfile = argv[1];
   int portnum = atoi(argv[2]);
+
+  // Create a log mutex to synchronise outputs
+  pthread_mutex_t log_mutex;
+  if (pthread_mutex_init(&log_mutex, NULL)) {
+    perror("Could not inialize mutex");
+    exit(1);
+  }
 
   // Create a TCP socket.
   int sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -111,6 +134,7 @@ int main(int argc, char** argv) {
   while (1) {
     // Accept an incoming connection
     struct conn_args* thread_args = malloc(sizeof(struct conn_args));
+    thread_args->log_mutex = &log_mutex;
     socklen_t size = sizeof(struct sockaddr_in);
     thread_args->client_sock = accept(
         sock, (struct sockaddr *)&(thread_args->client_addr), &size);
