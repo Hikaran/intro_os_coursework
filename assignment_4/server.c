@@ -18,7 +18,7 @@
 
 #define NUM_ARGS_SERVER 2
 #define MAX_CONNECTIONS 100
-#define MSG_SIZE 16
+#define MSG_SIZE 256
 
 int main(int argc, char** argv) {
 
@@ -61,61 +61,30 @@ int main(int argc, char** argv) {
     printf("Connection initiated from client at %s:%d\n",
         inet_ntoa(clientAddress.sin_addr), clientAddress.sin_port);
 
-    // Buffer for data.
-    char buf[MSG_SIZE];
-
-    char size_str[10];
+    // Recive request
+    char req_str[MSG_SIZE];
     int nbytes;
-    int linenum = 0;
+    while (nbytes = recv(newsock, (void*)&req_str, MSG_SIZE, 0) > 0) {
+      printf("RECV: |%s|\n", req_str);
 
-    // Recive size msg
-    while (nbytes = recv(newsock, (void*)&size_str, 10, 0) > 0) {
-
-      int msg_size = atoi(size_str);
-
-      // Recive actual message
-      char* msg_str = (char*)malloc(msg_size * sizeof(char));
-      recv(newsock, (void*)msg_str, msg_size, 0);
-      printf("RECV: |%s|\n", msg_str);
-
-      // Convert message to request
+      // Convert request string to request struct
       struct request_msg req;
-      req.code = NULL;
-      req.region_name = NULL;
-      req.data = NULL;
-      parse_request_msg_string(msg_str, &req);
+      parse_req_msg_str(req_str, &req);
 
       // Handle request and form the response
       struct response_msg resp;
-      resp.code = NULL;
-      resp.data = NULL;
       handle_request(&req, &resp);
 
       // Convert response to string message
-      char* response_str = response_to_string(&resp);
-      if (response_str == NULL) {
-        fprintf(stderr, "Could not convert response to string\n");
-        exit(1);
-      }
+      char resp_str[MSG_SIZE];
+      resp_to_str(&resp, resp_str);
 
-      // First send mesage of how long response is to client
-      char size_str[10];
-      sprintf(size_str, "%d", strlen(response_str));
-      if (send(newsock, (void*)size_str, 10, 0) != 10) {
+      // Then send the response string to client
+      if (send(newsock, (void*)resp_str, MSG_SIZE, 0) != MSG_SIZE) {
         fprintf(stderr, "Did not send full msg\n");
         exit(1);
       }
-
-      // Then send actual request
-      if (send(newsock, (void*)response_str, strlen(response_str), 0) !=
-          strlen(response_str)) {
-        fprintf(stderr, "Did not send full msg\n");
-        exit(1);
-      }
-      printf("SENT: |%s|\n", response_str);
-
-      free(msg_str);
-      linenum++;
+      printf("SENT: |%s|\n", resp_str);
     }
 
     // Close the connection.

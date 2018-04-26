@@ -17,7 +17,7 @@
 #include "util.h"
 
 #define NUM_ARGS_CLIENT 3
-#define MSG_SIZE 16
+#define MSG_SIZE 256
 #define MAX_LINE_LEN 4096
 
 int main(int argc, char** argv) {
@@ -54,61 +54,43 @@ int main(int argc, char** argv) {
     // Read the file line by line and send requests to socket
     char line[MAX_LINE_LEN];
     while (fgets(line, MAX_LINE_LEN, file)) {
+
+      // Create the request from the line
       char* cleanline = trimwhitespace(line);
-      struct request_msg request;
-      if (parse_request_file_line(cleanline, &request) == 0) {
+      struct request_msg req;
+      if (parse_req_file_line(cleanline, &req) == 0) {
         fprintf(stderr, "Could not parse line from file\n");
         exit(1);
       }
-      char* request_str = request_to_string(&request);
-      if (request_str == NULL) {
-        fprintf(stderr, "Could not convert request to string\n");
-        exit(1);
-      }
 
-      // First send mesage of how long request is
-      char size_str[10];
-      sprintf(size_str, "%d", strlen(request_str));
-      if (send(sock, (void*)size_str, 10, 0) != 10) {
+      // Convert request struct to request string
+      char req_str[MSG_SIZE];
+      req_to_str(&req, req_str);
+
+      // Send request string to server
+      if (send(sock, (void*)req_str, MSG_SIZE, 0) != MSG_SIZE) {
         fprintf(stderr, "Did not send full msg\n");
         exit(1);
       }
 
-      // Then send actual request
-      if (send(sock, (void*)request_str, strlen(request_str), 0) !=
-          strlen(request_str)) {
-        fprintf(stderr, "Did not send full msg\n");
-        exit(1);
-      }
+      // TODO: Remove
+      printf("SENT: |%s|\n", req_str);
 
-      printf("SENT: |%s|\n", request_str);
+      // Recive response string from server
+      char resp_str[MSG_SIZE];
+      recv(sock, (void*)resp_str, MSG_SIZE, 0);
 
-
-      // Recive size msg
-      char resp_size_str[10] = {'\0'};
-      recv(sock, (void*)&resp_size_str, 10, 0);
-      int resp_size = atoi(resp_size_str);
-
-      // Recive actual message
-      char* resp_str = (char*)malloc(resp_size * sizeof(char));
-      recv(sock, (void*)resp_str, resp_size, 0);
-
+      // TODO: REMOVE
       printf("RECV: |%s|\n", resp_str);
 
-      // Convert message to request
+      // Convert response string to response struct
       struct response_msg resp;
-      resp.code = NULL;
-      resp.data = NULL;
-      parse_response_msg_string(resp_str, &resp);
-
-      free_request_msg_fields(&request);
-      free(request_str);
+      parse_resp_msg_str(resp_str, &resp);
     }
 
-    // Close the file.
+    // Close the file and socket
     fclose(file);
     close(sock);
-
   } else {
     perror("Connection failed!");
   }
