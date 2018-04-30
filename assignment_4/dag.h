@@ -231,6 +231,20 @@ struct votes* count_new_votes(char* data) {
   return new_votes;
 }
 
+/**
+ * Find candidate node in voting record.
+ */
+struct votes* find_candidate(struct votes* results, char* name) {
+  struct votes* viewer = results;
+  while (viewer != NULL) {
+    if (strcmp(viewer->candidate, name) == 0) {
+      return viewer;
+    }
+    viewer = viewer->next;
+  }
+  return NULL;
+}
+
 void handle_request(struct dag_t* dag, struct request_msg* req, struct response_msg* resp) {
   // Default message.
   set_resp_msg(resp, "UE", "");
@@ -382,17 +396,57 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       pthread_mutex_lock(dag->mutex);
 
       // TODO
+      // Check validity of region
       if (node->num_children != 0) {
         set_resp_msg(resp, "NL", req->region_name);
       } else if (node->poll_status != POLL_OPEN) {
         set_resp_msg(resp, "RC", req->region_name);
       } else {
         struct votes* tally = count_new_votes(req->data);
-        if (tally != NULL) {
-          free_votes(tally);
+        if (tally == NULL) {
+          pthread_mutex_unlock(dag->mutex);
+          return;
         }
 
         // TODO
+        // Detect illegal subtraction.
+        char culprits[MSG_SIZE];
+        struct votes* viewer = tally;
+        struct votes* candidate_info;
+        while (viewer != NULL) {
+          candidate_info = find_candidate(node->results, viewer->candidate);
+          if (candidate_info == NULL ||
+              viewer->votes > candidate_info->votes) {
+            if (strlen(culprits) == 0) {
+              sprintf(culprits, "%s", viewer->candidate);
+            } else {
+              sprintf(culprits + strlen(culprits), ",%s", viewer->candidate);
+            }
+          }
+          viewer = viewer->next;
+        }
+
+        // Exit if illegal subtraction detected.
+        if (strlen(culprits) > 0) {
+          set_resp_msg(resp, "IS", culprits);
+          free_votes(tally);
+          pthread_mutex_unlock(dag->mutex);
+          return;
+        }
+
+        // Remove votes iteratively.
+        struct votes* remover;
+        while (node != NULL) {
+          remover = tally;
+          while (remover != NULL) {
+            add_votes(node->results, remover->candidate, -(remover->votes));
+            remover = remover->next;
+          }
+
+          node = node->parent;
+        }
+        free_votes(tally);
+        set_resp_msg(resp, "SC", "");
       }
 
       // Unlock tree.
