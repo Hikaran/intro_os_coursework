@@ -44,7 +44,7 @@ void* handle_connection(void* arg) {
   // Save client ip addr to string for easy reuse
   char client_ip_addr[MAX_IP_ADDR_LEN];
   sprintf(client_ip_addr, "%s:%d",
-      inet_ntoa(client_addr->sin_addr), client_addr->sin_port);
+      inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
 
   pthread_mutex_lock(log_mutex);
   printf("Connection initiated from client at %s\n", client_ip_addr);
@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
     socklen_t size = sizeof(struct sockaddr_in);
     thread_args->client_sock = accept(
         sock, (struct sockaddr *)&(thread_args->client_addr), &size);
-    printf("Accepted\n");
+
     if (thread_args->client_sock < 0) {
       perror("Error accepting connection");
       exit(1);

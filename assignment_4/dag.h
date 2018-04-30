@@ -18,6 +18,7 @@
 #define POLL_INITIAL 0
 #define POLL_OPEN 1
 #define POLL_CLOSED 2
+#define MSG_SIZE 256
 
 struct dag_node_t {
   char* name;
@@ -177,6 +178,51 @@ void init_dag(struct dag_t* dag, char* dagfilepath) {
 }
 
 void handle_request(struct dag_t* dag, struct request_msg* req, struct response_msg* resp) {
+  if (strcmp(req->code, "RW") == 0) {
+    // TODO
+  } else if (strcmp(req->code, "CV") == 0) {
+    struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
+    if (node == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+      return;
+    } else {
+      // TODO
+    }
+  } else if (strcmp(req->code, "OP") == 0) {
+    struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
+    if (node == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+      return;
+    } else {
+      // TODO
+    }
+  } else if (strcmp(req->code, "AV") == 0) {
+    struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
+    if (node == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+      return;
+    } else {
+      // TODO
+    }
+  } else if (strcmp(req->code, "RV") == 0) {
+    struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
+    if (node == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+      return;
+    } else {
+      // TODO
+    }
+  } else if (strcmp(req->code, "CP") == 0) {
+    struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
+    if (node == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+      return;
+    } else {
+      // TODO
+    }
+  } else {
+    set_resp_msg(resp, "UC", req->code);
+  }
   set_resp_msg(resp, "UE", "");
 }
 

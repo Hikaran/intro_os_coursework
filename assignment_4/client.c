@@ -56,11 +56,10 @@ int main(int argc, char** argv) {
   // Connect it.
   if (connect(sock, (struct sockaddr *) &address, sizeof(address)) == 0) {
 
-
     // Save server ip addr to string for easy reuse
     char server_ip_addr[MAX_IP_ADDR_LEN];
     sprintf(server_ip_addr, "%s:%d",
-    inet_ntoa(address.sin_addr), address.sin_port);
+    inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
     printf("Initiated connection with server at %s\n", server_ip_addr);
 
@@ -94,14 +93,14 @@ int main(int argc, char** argv) {
         exit(1);
       }
 
-      // Recive response string from server
+      // Receive response string from server
       char resp_str[MSG_SIZE];
       recv(sock, (void*)resp_str, MSG_SIZE, 0);
 
       // Convert response string to response struct
       struct response_msg resp;
       parse_resp_msg_str(resp_str, &resp);
-      printf("Recived response from server: %s %s\n", resp.code, resp.data);
+      printf("Received response from server: %s %s\n", resp.code, resp.data);
     }
 
     // Close the file and socket
