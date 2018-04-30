@@ -251,8 +251,27 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       // Lock tree.
       pthread_mutex_lock(dag->mutex);
 
-      // TODO
-      
+      // Check if votes have been recorded.
+      if (node->results == NULL) {
+        set_resp_msg(resp, "SC", "No votes.");
+        pthread_mutex_unlock(dag->mutex);
+        return;
+      }
+
+      struct votes* counter = node->results;
+
+      // Record votes.
+      char buf[MSG_SIZE];
+      while (counter != NULL) {
+        if (strlen(buf) == 0) {
+          sprintf(buf, "%s:%d", counter->candidate, counter->votes);
+        } else {
+          sprintf(buf + strlen(buf), ",%s:%d", counter->candidate, counter->votes);
+        }
+        counter = counter->next;
+      }
+
+      set_resp_msg(resp, "SC", buf);
 
       // Unlock tree.
       pthread_mutex_unlock(dag->mutex);
@@ -288,7 +307,6 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       // Lock tree.
       pthread_mutex_lock(dag->mutex);
 
-      // TODO
       // Check validity of region.
       if (node->num_children != 0) {
         set_resp_msg(resp, "NL", req->region_name);
@@ -299,20 +317,24 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
         struct votes* tally = count_new_votes(req->data);
 
         if (tally == NULL) {
+          pthread_mutex_unlock(dag->mutex);
           return;
         }
 
         // Add new votes to results.
-        while (node != NULL) {
-          while (tally != NULL) {
-            if (node->results == NULL) {
-              node->results = add_votes(node->results, tally->candidate, tally->votes);
+        struct dag_node_t* region = node;
+        struct votes* counter = tally;
+        while (region != NULL) {
+          counter = tally;
+          while (counter != NULL) {
+            if (region->results == NULL) {
+              region->results = add_votes(region->results, counter->candidate, counter->votes);
             } else {
-              add_votes(node->results, tally->candidate, tally->votes);
+              add_votes(region->results, counter->candidate, counter->votes);
             }
-            tally = tally->next;
+            counter = counter->next;
           }
-          node = node->parent;
+          region = region->parent;
         }
         free_votes(tally);
         set_resp_msg(resp, "SC", "");
