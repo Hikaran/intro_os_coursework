@@ -51,6 +51,13 @@ void test_init_dag() {
   assert(strcmp(county2->name, "County_2") == 0);
   assert(county2->num_children == 0);
 
+  printf("Completed region check.\n");
+
+  pthread_mutex_lock(dag.mutex);
+  pthread_mutex_unlock(dag.mutex);
+
+  printf("Completed lock check.\n");
+
   printf("Passed!\n");
 }
 

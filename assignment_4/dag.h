@@ -27,7 +27,6 @@ struct dag_node_t {
   struct dag_node_t* parent;
   struct dag_node_t** children;
   int num_children;
-  pthread_mutex_t mutex;
 };
 
 struct region_list {
@@ -38,6 +37,7 @@ struct region_list {
 struct dag_t {
   struct dag_node_t* root;
   struct region_list* list;
+  pthread_mutex_t* mutex;
 };
 
 void append_dag_node(struct region_list* list, struct dag_node_t* node) {
@@ -80,12 +80,6 @@ struct dag_node_t* init_dag_node(char* name) {
   // Allocate space for child references.
   node->children = (struct dag_node_t**) calloc(MAX_REGIONS, sizeof(struct dag_node_t*));
 
-  // Initialize mutex.
-  if (pthread_mutex_init(&(node->mutex), NULL)) {
-    perror("Could not initialize regional mutex");
-    exit(1);
-  }
-
   // Clear potential garbage values.
   node->parent = NULL;
   node->num_children = 0;
@@ -106,10 +100,18 @@ void init_dag(struct dag_t* dag, char* dagfilepath) {
     exit(1);
   }
 
+  // Initialize DAG tree and node list.
   dag->root = NULL;
   dag->list = (struct region_list*) malloc(sizeof(struct region_list));
   dag->list->regions = (struct dag_node_t**) calloc(MAX_REGIONS, sizeof(struct dag_node_t*));
   dag->list->size = 0;
+
+  // Initialize DAG mutex.
+  dag->mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+  if (pthread_mutex_init(dag->mutex, NULL)) {
+    perror("Could not initialize regional mutex");
+    exit(1);
+  }
 
   char line[MAX_LINE_LEN];
   errno = 0;
@@ -177,53 +179,128 @@ void init_dag(struct dag_t* dag, char* dagfilepath) {
   fclose(dag_file);
 }
 
+void open_poll(struct dag_node_t* node) {
+  node->poll_status = POLL_OPEN;
+
+  for (int i = 0; i < node->num_children; i++) {
+    open_poll(node->children[i]);
+  }
+}
+
+void close_poll(struct dag_node_t* node) {
+  node->poll_status = POLL_CLOSED;
+
+  for (int i = 0; i < node->num_children; i++) {
+    close_poll(node->children[i]);
+  }
+}
+
 void handle_request(struct dag_t* dag, struct request_msg* req, struct response_msg* resp) {
+  // Default message.
+  set_resp_msg(resp, "UE", "");
+
   if (strcmp(req->code, "RW") == 0) {
+    // Lock tree.
+    pthread_mutex_lock(dag->mutex);
+
     // TODO
+
+    // Unlock tree.
+    pthread_mutex_unlock(dag->mutex);
   } else if (strcmp(req->code, "CV") == 0) {
     struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
     if (node == NULL) {
       set_resp_msg(resp, "NR", req->region_name);
-      return;
     } else {
+      // Lock tree.
+      pthread_mutex_lock(dag->mutex);
+
       // TODO
+
+      // Unlock tree.
+      pthread_mutex_unlock(dag->mutex);
     }
   } else if (strcmp(req->code, "OP") == 0) {
     struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
     if (node == NULL) {
       set_resp_msg(resp, "NR", req->region_name);
-      return;
     } else {
+      // Lock tree.
+      pthread_mutex_lock(dag->mutex);
+
       // TODO
+      if (node->poll_status == POLL_OPEN) {
+        char msg[MSG_SIZE];
+        sprintf(msg, "%s open.", node->name);
+        set_resp_msg(resp, "PF", msg);
+      } else if (node->poll_status == POLL_CLOSED) {
+        set_resp_msg(resp, "RR", node->name);
+      } else if (node->poll_status == POLL_INITIAL) {
+        // TODO
+        open_poll(node);
+
+        set_resp_msg(resp, "SC", "");
+      }
+
+      // Unlock tree.
+      pthread_mutex_unlock(dag->mutex);
     }
   } else if (strcmp(req->code, "AV") == 0) {
     struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
     if (node == NULL) {
       set_resp_msg(resp, "NR", req->region_name);
-      return;
     } else {
+      // Lock tree.
+      pthread_mutex_lock(dag->mutex);
+
       // TODO
+
+      // Unlock tree.
+      pthread_mutex_unlock(dag->mutex);
     }
   } else if (strcmp(req->code, "RV") == 0) {
     struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
     if (node == NULL) {
       set_resp_msg(resp, "NR", req->region_name);
-      return;
     } else {
+      // Lock tree.
+      pthread_mutex_lock(dag->mutex);
+
       // TODO
+
+      // Unlock tree.
+      pthread_mutex_unlock(dag->mutex);
     }
   } else if (strcmp(req->code, "CP") == 0) {
     struct dag_node_t* node = find_dag_node(dag->list, req->region_name);
     if (node == NULL) {
       set_resp_msg(resp, "NR", req->region_name);
-      return;
     } else {
+      // Lock tree.
+      pthread_mutex_lock(dag->mutex);
+
       // TODO
+      if (node->poll_status == POLL_INITIAL) {
+        char msg[MSG_SIZE];
+        sprintf(msg, "%s initial.", node->name);
+        set_resp_msg(resp, "PF", msg);
+      } else if (node->poll_status == POLL_CLOSED) {
+        char msg[MSG_SIZE];
+        sprintf(msg, "%s closed.", node->name);
+        set_resp_msg(resp, "PF", msg);
+      } else if (node->poll_status == POLL_OPEN) {
+        // TODO
+        close_poll(node);
+
+        set_resp_msg(resp, "SC", "");
+      }
+
+      // Unlock tree.
+      pthread_mutex_unlock(dag->mutex);
     }
   } else {
     set_resp_msg(resp, "UC", req->code);
   }
-  set_resp_msg(resp, "UE", "");
 }
 
 #endif
