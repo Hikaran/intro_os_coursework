@@ -97,7 +97,7 @@ void* handle_connection(void* arg) {
 int main(int argc, char** argv) {
 
   // Parse args
-  if (argc > NUM_ARGS_SERVER + 1) {
+  if (argc < NUM_ARGS_SERVER + 1) {
     printf("Wrong number of args, expected %d, given %d\n",
         NUM_ARGS_SERVER, argc - 1);
     exit(1);

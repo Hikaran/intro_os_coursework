@@ -22,13 +22,13 @@ struct request_msg {
   // Plus one for string terminator
   char code[CODE_LEN + 1];
   char region_name[REGION_NAME_LEN + 1];
-  char data[MSG_SIZE + 1];
+  char data[MSG_SIZE];
 };
 
 struct response_msg {
   // Plus one for string terminator
   char code[CODE_LEN + 1];
-  char data[MSG_SIZE + 1];
+  char data[MSG_SIZE];
 };
 
 /** Copy the strings int the msg using strcpy. */
