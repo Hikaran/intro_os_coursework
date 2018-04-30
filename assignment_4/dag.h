@@ -195,6 +195,42 @@ void close_poll(struct dag_node_t* node) {
   }
 }
 
+/**
+ * Count votes from string of form "A:7,B:2,C:3"
+ */
+struct votes* count_new_votes(char* data) {
+  // Split data by candidate.
+  char** candidates;
+  int num_candidates = makeargv(trimwhitespace(data), ",", &candidates);
+
+  struct votes* new_votes = NULL;
+
+  // Parse new votes.
+  for (int i = 0; i < num_candidates; i++) {
+    // Split each data segment into identity and votes.
+    char** vote_info;
+    if (makeargv(trimwhitespace(candidates[i]), ":", &vote_info) != 2) {
+      // Formatting error detected.
+      free_votes(new_votes);
+      return NULL;
+    }
+
+    char* name = trimwhitespace(vote_info[0]);
+    int quantity = atoi(trimwhitespace(vote_info[1]));
+
+    if (new_votes == NULL) {
+      new_votes = add_votes(new_votes, name, quantity);
+    } else {
+      add_votes(new_votes, name, quantity);
+    }
+
+    freemakeargv(vote_info);
+  }
+
+  freemakeargv(candidates);
+  return new_votes;
+}
+
 void handle_request(struct dag_t* dag, struct request_msg* req, struct response_msg* resp) {
   // Default message.
   set_resp_msg(resp, "UE", "");
@@ -216,6 +252,7 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       pthread_mutex_lock(dag->mutex);
 
       // TODO
+      
 
       // Unlock tree.
       pthread_mutex_unlock(dag->mutex);
@@ -228,7 +265,6 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       // Lock tree.
       pthread_mutex_lock(dag->mutex);
 
-      // TODO
       if (node->poll_status == POLL_OPEN) {
         char msg[MSG_SIZE];
         sprintf(msg, "%s open.", node->name);
@@ -236,7 +272,6 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       } else if (node->poll_status == POLL_CLOSED) {
         set_resp_msg(resp, "RR", node->name);
       } else if (node->poll_status == POLL_INITIAL) {
-        // TODO
         open_poll(node);
 
         set_resp_msg(resp, "SC", "");
@@ -254,6 +289,34 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       pthread_mutex_lock(dag->mutex);
 
       // TODO
+      // Check validity of region.
+      if (node->num_children != 0) {
+        set_resp_msg(resp, "NL", req->region_name);
+      } else if (node->poll_status != POLL_OPEN) {
+        set_resp_msg(resp, "RC", req->region_name);
+      } else {
+        // Count new votes.
+        struct votes* tally = count_new_votes(req->data);
+
+        if (tally == NULL) {
+          return;
+        }
+
+        // Add new votes to results.
+        while (node != NULL) {
+          while (tally != NULL) {
+            if (node->results == NULL) {
+              node->results = add_votes(node->results, tally->candidate, tally->votes);
+            } else {
+              add_votes(node->results, tally->candidate, tally->votes);
+            }
+            tally = tally->next;
+          }
+          node = node->parent;
+        }
+        free_votes(tally);
+        set_resp_msg(resp, "SC", "");
+      }
 
       // Unlock tree.
       pthread_mutex_unlock(dag->mutex);
@@ -267,6 +330,18 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       pthread_mutex_lock(dag->mutex);
 
       // TODO
+      if (node->num_children != 0) {
+        set_resp_msg(resp, "NL", req->region_name);
+      } else if (node->poll_status != POLL_OPEN) {
+        set_resp_msg(resp, "RC", req->region_name);
+      } else {
+        struct votes* tally = count_new_votes(req->data);
+        if (tally != NULL) {
+          free_votes(tally);
+        }
+
+        // TODO
+      }
 
       // Unlock tree.
       pthread_mutex_unlock(dag->mutex);
@@ -279,17 +354,15 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       // Lock tree.
       pthread_mutex_lock(dag->mutex);
 
-      // TODO
       if (node->poll_status == POLL_INITIAL) {
         char msg[MSG_SIZE];
-        sprintf(msg, "%s initial.", node->name);
+        sprintf(msg, "%s unopened.", node->name);
         set_resp_msg(resp, "PF", msg);
       } else if (node->poll_status == POLL_CLOSED) {
         char msg[MSG_SIZE];
         sprintf(msg, "%s closed.", node->name);
         set_resp_msg(resp, "PF", msg);
       } else if (node->poll_status == POLL_OPEN) {
-        // TODO
         close_poll(node);
 
         set_resp_msg(resp, "SC", "");
