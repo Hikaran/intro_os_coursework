@@ -63,3 +63,7 @@ test
 # Project-specific Files
 **/TestCase01
 **/TestCase02
+**/TestCases
+**/client
+**/server
+**/test

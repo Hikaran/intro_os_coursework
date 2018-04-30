@@ -19,6 +19,7 @@
 #define NUM_ARGS_SERVER 2
 #define MAX_CONNECTIONS 100
 #define MSG_SIZE 256
+#define REGION_NAME_LENGTH 16
 #define MAX_IP_ADDR_LEN 500
 #define MAX_LOG_MSG_LEN 2048
 
@@ -44,13 +45,13 @@ void* handle_connection(void* arg) {
   // Save client ip addr to string for easy reuse
   char client_ip_addr[MAX_IP_ADDR_LEN];
   sprintf(client_ip_addr, "%s:%d",
-      inet_ntoa(client_addr->sin_addr), client_addr->sin_port);
+      inet_ntoa(client_addr->sin_addr), ntohs(client_addr->sin_port));
 
   pthread_mutex_lock(log_mutex);
   printf("Connection initiated from client at %s\n", client_ip_addr);
   pthread_mutex_unlock(log_mutex);
 
-  // Recive request
+  // Receive request
   char req_str[MSG_SIZE];
   int nbytes;
   while (nbytes = recv(client_sock, (void*)&req_str, MSG_SIZE, 0) > 0) {
@@ -60,8 +61,20 @@ void* handle_connection(void* arg) {
     parse_req_msg_str(req_str, &req);
 
     pthread_mutex_lock(log_mutex);
-    printf("Request received from client at %s, %s, %s\n",
-        client_ip_addr, req.code, req.data);
+    char region[REGION_NAME_LENGTH];
+    if (strcmp(req.region_name, "") == 0) {
+      sprintf(region, "(null)");
+    } else {
+      sprintf(region, "%s", req.region_name);
+    }
+    char req_data[MSG_SIZE];
+    if (strcmp(req.data, "") == 0) {
+      sprintf(req_data, "(null)");
+    } else {
+      sprintf(req_data, "%s", req.data);
+    }
+    printf("Request received from client at %s, %s %s %s\n",
+        client_ip_addr, req.code, region, req_data);
     pthread_mutex_unlock(log_mutex);
 
     // Handle request and form the response
@@ -74,12 +87,17 @@ void* handle_connection(void* arg) {
 
     // Then send the response string to client
     pthread_mutex_lock(log_mutex);
+    char resp_data[MSG_SIZE];
+    if (strcmp(resp.data, "") == 0) {
+      sprintf(resp_data, "(null)");
+    } else {
+      sprintf(resp_data, "%s", resp.data);
+    }
     printf("Sending response to client at %s, %s %s\n",
-        client_ip_addr, resp.code, resp.data);
+        client_ip_addr, resp.code, resp_data);
     pthread_mutex_unlock(log_mutex);
     if (send(client_sock, (void*)resp_str, MSG_SIZE, 0) != MSG_SIZE) {
       fprintf(stderr, "Did not send full msg\n");
-      exit(1);
     }
   }
 
@@ -97,9 +115,8 @@ void* handle_connection(void* arg) {
 int main(int argc, char** argv) {
 
   // Parse args
-  if (argc > NUM_ARGS_SERVER + 1) {
-    printf("Wrong number of args, expected %d, given %d\n",
-        NUM_ARGS_SERVER, argc - 1);
+  if (argc < NUM_ARGS_SERVER + 1) {
+    printf("Usage: ./server <DAG File> <Server Port>\n");
     exit(1);
   }
   char* dagfilepath = argv[1];
@@ -108,7 +125,7 @@ int main(int argc, char** argv) {
   // Create a log mutex to synchronise outputs
   pthread_mutex_t log_mutex;
   if (pthread_mutex_init(&log_mutex, NULL)) {
-    perror("Could not inialize mutex");
+    perror("Could not initialize mutex");
     exit(1);
   }
 
@@ -133,19 +150,18 @@ int main(int argc, char** argv) {
   }
   printf("Server listening on port %d\n", portnum);
 
-  // Server runs infinitely
+  // Server runs indefinitely.
   while (1) {
-    // Accept an incoming connection
+    // Accept an incoming connection.
     struct conn_args* thread_args = malloc(sizeof(struct conn_args));
     thread_args->log_mutex = &log_mutex;
     thread_args->dag = &dag;
     socklen_t size = sizeof(struct sockaddr_in);
     thread_args->client_sock = accept(
         sock, (struct sockaddr *)&(thread_args->client_addr), &size);
-    printf("Accepted\n");
+
     if (thread_args->client_sock < 0) {
       perror("Error accepting connection");
-      exit(1);
     } else {
       pthread_t conn_thread;
       if (pthread_create(&conn_thread, NULL, handle_connection, (void*)thread_args) != 0) {
