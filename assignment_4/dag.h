@@ -239,7 +239,37 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
     // Lock tree.
     pthread_mutex_lock(dag->mutex);
 
-    // TODO
+    // Check if voting has concluded.
+    struct dag_node_t* root = dag->root;
+    if (root->poll_status == POLL_INITIAL) {
+      set_resp_msg(resp, "RC", root->name);
+    } else if (root->poll_status == POLL_OPEN) {
+      set_resp_msg(resp, "RO", root->name);
+    } else if (root->poll_status == POLL_CLOSED) {
+      // Check if votes have been recorded.
+      if (root->results == NULL) {
+        set_resp_msg(resp, "SC", "No votes.");
+        pthread_mutex_unlock(dag->mutex);
+        return;
+      }
+
+      // Determine winner.
+      struct votes* viewer = root->results;
+      char leader[MSG_SIZE];
+      int high = -1;
+      while (viewer != NULL) {
+        if (viewer->votes > high) {
+          high = viewer->votes;
+          strcpy(leader, viewer->candidate);
+        }
+        viewer = viewer->next;
+      }
+
+      // Construct and send response.
+      char response[MSG_SIZE];
+      sprintf(response, "Winner:%s", leader);
+      set_resp_msg(resp, "SC", response);
+    }
 
     // Unlock tree.
     pthread_mutex_unlock(dag->mutex);
