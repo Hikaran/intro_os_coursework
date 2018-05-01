@@ -100,8 +100,8 @@ int main(int argc, char** argv) {
         sprintf(req_data, "%s", req.data);
       }
       printf("Sending request to server: %s %s %s\n", req.code, region, req_data);
-      if (send(sock, (void*)req_str, MSG_SIZE, 0) != MSG_SIZE) {
-        fprintf(stderr, "Did not send full msg\n");
+      if (send(sock, (void*)req_str, strlen(req_str)+1, 0) < 0) {
+        perror("Error sending request");
         exit(1);
       }
 

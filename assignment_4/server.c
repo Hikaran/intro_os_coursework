@@ -96,8 +96,8 @@ void* handle_connection(void* arg) {
     printf("Sending response to client at %s, %s %s\n",
         client_ip_addr, resp.code, resp_data);
     pthread_mutex_unlock(log_mutex);
-    if (send(client_sock, (void*)resp_str, MSG_SIZE, 0) != MSG_SIZE) {
-      fprintf(stderr, "Did not send full msg\n");
+    if (send(client_sock, (void*)resp_str, strlen(resp_str)+1, 0) < 0) {
+      perror("Error sending response");
     }
   }
 
