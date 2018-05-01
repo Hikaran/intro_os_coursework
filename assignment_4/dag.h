@@ -180,7 +180,9 @@ void init_dag(struct dag_t* dag, char* dagfilepath) {
 }
 
 void open_poll(struct dag_node_t* node) {
-  node->poll_status = POLL_OPEN;
+  if (node->poll_status == POLL_INITIAL) {
+    node->poll_status = POLL_OPEN;
+  }
 
   for (int i = 0; i < node->num_children; i++) {
     open_poll(node->children[i]);
@@ -188,7 +190,9 @@ void open_poll(struct dag_node_t* node) {
 }
 
 void close_poll(struct dag_node_t* node) {
-  node->poll_status = POLL_CLOSED;
+  if (node->poll_status == POLL_OPEN) {
+    node->poll_status = POLL_CLOSED;
+  }
 
   for (int i = 0; i < node->num_children; i++) {
     close_poll(node->children[i]);
@@ -408,7 +412,6 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
           return;
         }
 
-        // TODO
         // Detect illegal subtraction.
         char culprits[MSG_SIZE];
         struct votes* viewer = tally;
@@ -476,6 +479,30 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
 
       // Unlock tree.
       pthread_mutex_unlock(dag->mutex);
+    }
+  } else if (strcmp(req->code, "AR") == 0) {
+    struct dag_node_t* parent = find_dag_node(dag->list, req->region_name);
+    if (parent == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+    } else {
+      // Unexpected error if region already exists.
+      if (find_dag_node(dag->list, req->data) != NULL) {
+        return;
+      }
+
+      // Add region to tree and list.
+      struct dag_node_t* child = init_dag_node(req->data);
+      if (child == NULL) {  // Unexpected error if failed to init.
+        return;
+      } else {
+        child->parent = parent;
+        parent->children[parent->num_children] = child;
+        parent->num_children++;
+
+        // Add child to list of nodes.
+        append_dag_node(dag->list, child);
+        set_resp_msg(resp, "SC", "");
+      }
     }
   } else {
     set_resp_msg(resp, "UC", req->code);
