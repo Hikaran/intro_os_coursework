@@ -481,6 +481,29 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
       // Unlock tree.
       pthread_mutex_unlock(dag->mutex);
     }
+  } else if (strcmp(req->code, "AR") == 0) {
+    struct dag_node_t* parent = find_dag_node(dag->list, req->region_name);
+    if (parent == NULL) {
+      set_resp_msg(resp, "NR", req->region_name);
+    } else {
+      // Unexpected error if region already exists.
+      if (find_dag_node(dag->list, req->data) != NULL) {
+        return;
+      }
+
+      // Add region to tree and list.
+      struct dag_node_t* child = init_dag_node(req->data);
+      if (child == NULL) {  // Unexpected error if failed to init.
+        return;
+      } else {
+        child->parent = parent;
+        parent->children[parent->num_children] = child;
+        parent->num_children++;
+
+        // Add child to list of nodes.
+        append_dag_node(dag->list, child);
+      }
+    }
   } else {
     set_resp_msg(resp, "UC", req->code);
   }
