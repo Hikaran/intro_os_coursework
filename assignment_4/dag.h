@@ -412,7 +412,6 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
           return;
         }
 
-        // TODO
         // Detect illegal subtraction.
         char culprits[MSG_SIZE];
         struct votes* viewer = tally;
@@ -502,6 +501,7 @@ void handle_request(struct dag_t* dag, struct request_msg* req, struct response_
 
         // Add child to list of nodes.
         append_dag_node(dag->list, child);
+        set_resp_msg(resp, "SC", "");
       }
     }
   } else {
