@@ -180,7 +180,9 @@ void init_dag(struct dag_t* dag, char* dagfilepath) {
 }
 
 void open_poll(struct dag_node_t* node) {
-  node->poll_status = POLL_OPEN;
+  if (node->poll_status == POLL_INITIAL) {
+    node->poll_status = POLL_OPEN;
+  }
 
   for (int i = 0; i < node->num_children; i++) {
     open_poll(node->children[i]);
@@ -188,7 +190,9 @@ void open_poll(struct dag_node_t* node) {
 }
 
 void close_poll(struct dag_node_t* node) {
-  node->poll_status = POLL_CLOSED;
+  if (node->poll_status == POLL_OPEN) {
+    node->poll_status = POLL_CLOSED;
+  }
 
   for (int i = 0; i < node->num_children; i++) {
     close_poll(node->children[i]);
