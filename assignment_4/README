@@ -1,0 +1,43 @@
+/*login: swann013, tangx254
+* date: 04/11/18
+* name: Kristopher Swann, Joseph Tang
+* login: swann013, tangx254
+* Extra credi: Yes */
+
+/* Lecture Section 001 (both) */
+
+# Purpose
+
+The purpose of the program is to implement a voting counter application that
+works across a distribted network.
+
+# Compiling
+
+Simply run `make`.
+
+# Running
+
+To run server
+
+./server dagfile port
+
+To run client
+
+./client reqfile hostip port
+
+# What it does
+
+The program works by having a server that runs and keeps keeps track of,
+modifies, etc. an in-memory DAG.
+
+The client connects to it and instructs the server what operations to perform
+on the DAG.
+
+See the write up for in-depth descriptions of the possible actions the server
+can accept and how the messages are passed between the server and client.
+
+# Contributions
+
+Kris: client, server
+
+Joseph: dag
